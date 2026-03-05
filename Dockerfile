@@ -485,10 +485,14 @@ public class EvaluateServlet extends HttpServlet {
             return convertResponseToJson(evalResponse, requestJson);
             
         } catch (Exception e) {
-            getServletContext().log("OpenCDS evaluation failed: " + e.getMessage(), e);
-            // Fall back to mock if evaluation fails (e.g., due to missing vMR data)
-            getServletContext().log("Falling back to mock response");
-            return getMockResponse(requestJson);
+            getServletContext().log("❌ OpenCDS evaluation failed: " + e.getMessage(), e);
+            e.printStackTrace();
+            // Return error instead of mock
+            JsonObject error = new JsonObject();
+            error.addProperty("error", "OpenCDS evaluation failed");
+            error.addProperty("message", e.getMessage());
+            error.addProperty("details", "Check server logs for full stack trace");
+            return gson.toJson(error);
         }
     }
     
