@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: opencds-server
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.build
+    dockerContext: .
+    healthCheckPath: /opencds/
+    envVars:
+      - key: JAVA_OPTS
+        value: -Xmx512m -Xms256m
+

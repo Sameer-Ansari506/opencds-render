@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Properties>
+        <Property name="pattern-layout">%d{yyyy-MM-ddTHH:mm:ss} %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="stdout">
+            <PatternLayout pattern="${pattern-layout}"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org.opencds" level="debug" additivity="false">
+            <AppenderRef ref="stdout"/>
+        </Logger>
+        <Root level="debug">
+            <AppenderRef ref="stdout"/>
+        </Root>
+    </Loggers>
+</Configuration>

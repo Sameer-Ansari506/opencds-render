@@ -1,0 +1,122 @@
+/*
+ * Copyright 2014-2020 OpenCDS.org
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opencds.config.api.model.impl;
+
+import org.apache.commons.lang3.StringUtils;
+import org.opencds.config.api.model.KMId;
+import org.opencds.config.api.model.PluginId;
+import org.opencds.config.api.model.SupportingData;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+public record SupportingDataImpl(String identifier,
+                                 KMId kmId,
+                                 String packageType,
+                                 String packageId,
+                                 PluginId loadedBy,
+                                 Date timestamp,
+                                 String userId) implements SupportingData {
+    public SupportingDataImpl {
+        assert StringUtils.isNotBlank(identifier);
+        assert StringUtils.isNotBlank(packageType);
+        assert StringUtils.isNotBlank(packageId);
+        // required, but we don't enforce it atm
+        // assert StringUtils.isNotBlank(userId);
+    }
+
+    public static SupportingDataImpl create(String identifier,
+                                            KMId kmId,
+                                            String packageType,
+                                            String packageId,
+                                            PluginId loadedBy,
+                                            Date timestamp,
+                                            String userId) {
+        return new SupportingDataImpl(
+                identifier,
+                KMIdImpl.create(kmId),
+                packageType,
+                packageId,
+                loadedBy,
+                timestamp,
+                userId);
+    }
+
+    public static SupportingDataImpl create(SupportingData sd) {
+        if (sd == null) {
+            return null;
+        }
+        if (sd instanceof SupportingDataImpl supportingDataImpl) {
+            return supportingDataImpl;
+        }
+        return create(
+                sd.getIdentifier(),
+                sd.getKMId(),
+                sd.getPackageType(),
+                sd.getPackageId(),
+                sd.getLoadedBy(),
+                sd.getTimestamp(),
+                sd.getUserId());
+    }
+
+    public static List<SupportingDataImpl> create(List<SupportingData> sds) {
+        if (sds == null) {
+            return null;
+        }
+        var sdis = new ArrayList<SupportingDataImpl>();
+        for (var sd : sds) {
+            sdis.add(create(sd));
+        }
+        return sdis;
+    }
+
+    @Override
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    @Override
+    public KMId getKMId() {
+        return kmId;
+    }
+
+    @Override
+    public String getPackageType() {
+        return packageType;
+    }
+
+    @Override
+    public String getPackageId() {
+        return packageId;
+    }
+
+    @Override
+    public PluginId getLoadedBy() {
+        return loadedBy;
+    }
+
+    @Override
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public String getUserId() {
+        return userId;
+    }
+}
