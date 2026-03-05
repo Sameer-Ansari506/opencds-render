@@ -1,7 +1,17 @@
 # Multi-stage build: Build OpenCDS from source, then create deployable webapp with REST JSON endpoint
+# Use Tomcat's servlet API for compilation to ensure jakarta namespace compatibility
+
+# Stage 1: Get servlet API from Tomcat
+FROM tomcat:9-jre17 AS tomcat-api
+# Tomcat 9 includes jakarta.servlet-api.jar in /usr/local/tomcat/lib/
+
+# Stage 2: Build OpenCDS and compile servlet
 FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
+
+# Copy servlet API from Tomcat (this has the correct jakarta namespace)
+COPY --from=tomcat-api /usr/local/tomcat/lib/jakarta.servlet-api.jar /tmp/servlet-api.jar
 
 # Copy OpenCDS source code
 COPY opencds /build/opencds
@@ -20,18 +30,11 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Download Jakarta Servlet API for compilation
-# Use version 5.0.0 which definitely has jakarta namespace
-RUN curl -L -o /tmp/servlet-api.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar && \
-    test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
-    echo "=== Verifying servlet-api.jar ===" && \
+# Verify servlet API from Tomcat
+RUN echo "=== Verifying Tomcat servlet API ===" && \
     ls -lh /tmp/servlet-api.jar && \
-    echo "=== Checking jar contents (first 30 entries) ===" && \
-    jar tf /tmp/servlet-api.jar | head -30 && \
-    echo "=== Verifying jakarta packages ===" && \
     jar tf /tmp/servlet-api.jar | grep "jakarta/servlet/http/HttpServlet" && \
-    echo "✅ Found jakarta packages in servlet-api.jar"
+    echo "✅ Using Tomcat's servlet API with jakarta namespace"
 
 # Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
@@ -100,33 +103,17 @@ public class EvaluateServlet extends HttpServlet {
 }
 EOJAVA
 
-# Compile servlet in builder stage (has Java compiler)
-RUN echo "=== Compiling servlet ===" && \
+# Compile servlet using Tomcat's servlet API
+RUN echo "=== Compiling servlet with Tomcat's servlet API ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
-    echo "=== Checking servlet-api.jar ===" && \
-    ls -lh /tmp/servlet-api.jar && \
-    echo "=== Verifying servlet API contents ===" && \
-    jar tf /tmp/servlet-api.jar | grep "jakarta/servlet/http/HttpServlet" && \
-    echo "=== Checking Java version ===" && \
-    javac -version && \
-    echo "=== Compiling with servlet API ===" && \
-    echo "=== Classpath check ===" && \
-    java -cp "/tmp/servlet-api.jar" -version 2>&1 || echo "Note: java -version doesn't use classpath" && \
     javac -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
-          /build/EvaluateServlet.java 2>&1 || \
-    (echo "=== Compilation failed, trying with extracted classes ===" && \
-     mkdir -p /tmp/servlet-extract && \
-     cd /tmp/servlet-extract && \
-     jar xf /tmp/servlet-api.jar && \
-     javac -cp "/tmp/servlet-extract" \
-           -d /build/webapp/WEB-INF/classes \
-           /build/EvaluateServlet.java) && \
+          /build/EvaluateServlet.java && \
     echo "=== Servlet compiled successfully ===" && \
     ls -la /build/webapp/WEB-INF/classes/ && \
     test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
 
-# Create web.xml with servlet configuration (backup - annotation should work)
+# Create web.xml with servlet configuration
 RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" 
