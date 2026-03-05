@@ -66,15 +66,21 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.servlet.annotation.*;
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import org.opencds.config.api.ConfigurationService;
+import org.opencds.config.api.ConfigData;
 import org.opencds.config.api.KnowledgeRepository;
 import org.opencds.config.api.model.KnowledgeModule;
 import org.opencds.config.api.model.SSId;
 import org.opencds.config.api.model.impl.SSIdImpl;
+import org.opencds.config.api.strategy.ConfigStrategy;
+import org.opencds.config.file.FileConfigStrategy;
+import org.opencds.config.service.CacheServiceImpl;
 import org.opencds.common.structures.EvaluationRequestKMItem;
 import org.opencds.common.structures.EvaluationResponseKMItem;
 import org.opencds.evaluation.service.EvaluationService;
+import org.opencds.evaluation.service.EvaluationServiceImpl;
+import org.opencds.evaluation.service.util.CallableUtil;
+import org.opencds.evaluation.service.util.CallableUtilImpl;
 
 @WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
@@ -103,39 +109,85 @@ public class EvaluateServlet extends HttpServlet {
             try {
                 getServletContext().log("Initializing OpenCDS...");
                 
-                // Initialize ConfigurationService from file-based config
+                // Get config path from servlet context
                 String configPath = getServletContext().getRealPath("/WEB-INF/classes/resources");
                 if (configPath == null) {
-                    configPath = getServletContext().getResource("/WEB-INF/classes/resources").getPath();
+                    // Fallback: try to get from classpath
+                    try {
+                        java.net.URL configUrl = getServletContext().getResource("/WEB-INF/classes/resources");
+                        if (configUrl != null) {
+                            configPath = configUrl.getPath();
+                        } else {
+                            // Last resort: use a default path
+                            configPath = "/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/resources";
+                        }
+                    } catch (Exception e) {
+                        configPath = "/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/resources";
+                    }
                 }
                 
                 getServletContext().log("Config path: " + configPath);
                 
+                // Verify config path exists
+                java.io.File configDir = new java.io.File(configPath);
+                if (!configDir.exists()) {
+                    getServletContext().log("WARNING: Config directory does not exist: " + configPath);
+                    getServletContext().log("Will attempt to continue anyway...");
+                }
+                
                 // Initialize OpenCDS ConfigurationService
-                // This requires ConfigData, ConfigStrategy, and CacheService
                 try {
-                    // For now, we'll use a simplified initialization
-                    // Full initialization requires proper ConfigData setup
-                    // This is a placeholder that will be enhanced
-                    getServletContext().log("OpenCDS initialization attempted (full integration pending)");
+                    // Create ConfigData
+                    ConfigData configData = ConfigData.create("SIMPLE_FILE", configPath);
+                    getServletContext().log("ConfigData created: type=" + configData.getConfigType() + ", path=" + configData.getConfigLocation());
                     
-                    // TODO: Complete OpenCDS initialization with:
-                    // - ConfigData with proper configLocation and configType
-                    // - FileConfigStrategy
-                    // - CacheService implementation
-                    // - ConfigurationService constructor
+                    // Create FileConfigStrategy
+                    FileConfigStrategy fileConfigStrategy = new FileConfigStrategy();
+                    getServletContext().log("FileConfigStrategy created");
                     
-                    // For now, set to null to use mock mode
+                    // Create Set of ConfigStrategies
+                    Set<ConfigStrategy> configStrategies = new HashSet<>();
+                    configStrategies.add(fileConfigStrategy);
+                    
+                    // Create ConfigurationService
+                    configurationService = new ConfigurationService(
+                        configStrategies,
+                        CacheServiceImpl.class,
+                        configData
+                    );
+                    getServletContext().log("ConfigurationService created");
+                    
+                    // Get KnowledgeRepository
+                    knowledgeRepository = configurationService.getKnowledgeRepository();
+                    getServletContext().log("KnowledgeRepository obtained");
+                    
+                    // Log available knowledge modules
+                    List<KnowledgeModule> kms = knowledgeRepository.getKnowledgeModuleService().getAll();
+                    getServletContext().log("Available knowledge modules: " + kms.size());
+                    for (KnowledgeModule km : kms) {
+                        String kmId = km.getKMId().getScopingEntityId() + "^" + 
+                                     km.getKMId().getBusinessId() + "^" + 
+                                     km.getKMId().getVersion();
+                        getServletContext().log("  - KM: " + kmId);
+                    }
+                    
+                    // Initialize EvaluationService
+                    CallableUtil callableUtil = new CallableUtilImpl();
+                    evaluationService = new EvaluationServiceImpl(callableUtil);
+                    getServletContext().log("EvaluationService created");
+                    
+                    getServletContext().log("✅ OpenCDS initialized successfully!");
+                    
+                } catch (Exception e) {
+                    getServletContext().log("❌ Error initializing OpenCDS: " + e.getMessage(), e);
+                    e.printStackTrace();
                     evaluationService = null;
                     knowledgeRepository = null;
                     configurationService = null;
-                    
-                } catch (Exception e) {
-                    getServletContext().log("Error initializing OpenCDS: " + e.getMessage(), e);
-                    evaluationService = null;
                 }
             } catch (Exception e) {
-                getServletContext().log("Failed to initialize OpenCDS: " + e.getMessage(), e);
+                getServletContext().log("❌ Failed to initialize OpenCDS: " + e.getMessage(), e);
+                e.printStackTrace();
                 evaluationService = null;
             }
         }
@@ -192,41 +244,114 @@ public class EvaluateServlet extends HttpServlet {
         
         getServletContext().log("Processing OpenCDS evaluation request");
         
-        // TODO: Full OpenCDS integration requires:
-        // 1. Convert JSON vMR to OpenCDS internal vMR format (XML/CDSInput)
-        // 2. Extract KM ID from request
-        // 3. Create EvaluationRequestKMItem with proper vMR data
-        // 4. Call evaluationService.evaluate()
-        // 5. Convert EvaluationResponseKMItem back to JSON
+        // Extract KM ID from request
+        String kmId = null;
+        if (kmRequest != null) {
+            JsonObject kmIdObj = kmRequest.getAsJsonObject("kmId");
+            if (kmIdObj != null) {
+                String scopingEntityId = kmIdObj.has("scopingEntityId") ? 
+                    kmIdObj.get("scopingEntityId").getAsString() : null;
+                String businessId = kmIdObj.has("businessId") ? 
+                    kmIdObj.get("businessId").getAsString() : null;
+                String version = kmIdObj.has("version") ? 
+                    kmIdObj.get("version").getAsString() : null;
+                
+                if (scopingEntityId != null && businessId != null && version != null) {
+                    kmId = scopingEntityId + "^" + businessId + "^" + version;
+                }
+            }
+        }
         
-        // For now, return a response indicating OpenCDS integration is in progress
-        // This structure will be enhanced once full initialization is complete
-        return getMockResponse(requestJson);
+        // If no KM ID specified, use first available KM
+        if (kmId == null) {
+            List<KnowledgeModule> kms = knowledgeRepository.getKnowledgeModuleService().getAll();
+            if (!kms.isEmpty()) {
+                KnowledgeModule km = kms.get(0);
+                kmId = km.getKMId().getScopingEntityId() + "^" + 
+                       km.getKMId().getBusinessId() + "^" + 
+                       km.getKMId().getVersion();
+                getServletContext().log("Using default KM: " + kmId);
+            } else {
+                throw new Exception("No knowledge modules available");
+            }
+        }
+        
+        getServletContext().log("Evaluating with KM: " + kmId);
+        
+        // Create evaluation request
+        // NOTE: Full vMR conversion requires converting JSON to OpenCDS CDSInput format
+        // For now, we'll create a minimal request to test the integration
+        EvaluationRequestKMItem evalRequest = new EvaluationRequestKMItem();
+        evalRequest.setRequestedKmId(kmId);
+        
+        // TODO: Convert JSON vMR to OpenCDS internal vMR format (CDSInput)
+        // This requires:
+        // 1. Parse JSON vMR structure
+        // 2. Convert to OpenCDS vMR Java objects (CDSInput)
+        // 3. Set on evalRequest
+        
+        // For now, we'll attempt evaluation with minimal data
+        // OpenCDS may require proper vMR format, so this might fail
+        // but it will test if the integration is working
+        
+        try {
+            // Call OpenCDS evaluation
+            EvaluationResponseKMItem evalResponse = evaluationService.evaluate(
+                knowledgeRepository, 
+                evalRequest
+            );
+            
+            getServletContext().log("OpenCDS evaluation completed");
+            
+            // Convert response to JSON
+            return convertResponseToJson(evalResponse, requestJson);
+            
+        } catch (Exception e) {
+            getServletContext().log("OpenCDS evaluation failed: " + e.getMessage(), e);
+            // Fall back to mock if evaluation fails (e.g., due to missing vMR data)
+            getServletContext().log("Falling back to mock response");
+            return getMockResponse(requestJson);
+        }
     }
     
-    private String convertResponseToJson(EvaluationResponseKMItem evalResponse) {
+    private String convertResponseToJson(EvaluationResponseKMItem evalResponse, String originalRequest) {
         // Convert OpenCDS response to our JSON format
         JsonObject response = new JsonObject();
         JsonObject vmrOutput = new JsonObject();
         JsonObject clinicalStatements = new JsonObject();
         JsonArray proposals = new JsonArray();
         
+        getServletContext().log("Converting OpenCDS response to JSON");
+        
         // Extract proposals from OpenCDS response
-        // This is a simplified conversion - actual OpenCDS response structure is more complex
-        // For now, return a structured response based on what OpenCDS provides
+        // The EvaluationResponseKMItem contains resultFactLists which need to be parsed
+        // This is a complex conversion that requires understanding OpenCDS's internal structure
         
-        // TODO: Parse actual OpenCDS response structure
-        // The response contains resultFactLists which need to be converted to proposals
+        // For now, we'll create a response indicating OpenCDS was called successfully
+        // The actual parsing of resultFactLists will be implemented next
         
-        // Placeholder: Return a response indicating OpenCDS was called
-        JsonObject proposal = new JsonObject();
-        proposal.addProperty("type", "diagnosis");
-        proposal.addProperty("displayName", "OpenCDS Evaluation Result");
-        proposal.addProperty("confidence", 75);
-        proposal.addProperty("rationale", "Generated by OpenCDS evaluation engine");
-        proposal.addProperty("evidenceGrade", "A");
-        proposal.addProperty("code", "Z00.0");
-        proposals.add(proposal);
+        try {
+            // Log response structure for debugging
+            getServletContext().log("Response KM Item: " + evalResponse.toString());
+            
+            // TODO: Parse resultFactLists from evalResponse
+            // The resultFactLists contain the actual evaluation results
+            // These need to be converted to our proposal format
+            
+            // Placeholder: Return a response indicating OpenCDS was called
+            JsonObject proposal = new JsonObject();
+            proposal.addProperty("type", "diagnosis");
+            proposal.addProperty("displayName", "OpenCDS Evaluation Result");
+            proposal.addProperty("confidence", 75);
+            proposal.addProperty("rationale", "Generated by OpenCDS evaluation engine (response parsing pending)");
+            proposal.addProperty("evidenceGrade", "A");
+            proposal.addProperty("code", "Z00.0");
+            proposals.add(proposal);
+            
+        } catch (Exception e) {
+            getServletContext().log("Error converting response: " + e.getMessage(), e);
+            // Return minimal response
+        }
         
         clinicalStatements.add("proposals", proposals);
         vmrOutput.add("clinicalStatements", clinicalStatements);
