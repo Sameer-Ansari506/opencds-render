@@ -23,8 +23,7 @@ FROM tomcat:9-jre17
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy WAR file from builder stage (if it exists)
-COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/opencds.war 2>/dev/null || \
-    echo "WARNING: No WAR file to copy - deployment may fail"
+COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/opencds.war
 
 # Expose port
 EXPOSE 8080
