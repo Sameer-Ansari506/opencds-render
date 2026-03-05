@@ -107,9 +107,18 @@ RUN echo "=== Compiling servlet ===" && \
     echo "=== Checking Java version ===" && \
     javac -version && \
     echo "=== Compiling with servlet API ===" && \
-    javac -verbose -cp "/tmp/servlet-api.jar" \
+    echo "=== Classpath check ===" && \
+    java -cp "/tmp/servlet-api.jar" -version 2>&1 || echo "Note: java -version doesn't use classpath" && \
+    javac -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
-          /build/EvaluateServlet.java 2>&1 | head -30 && \
+          /build/EvaluateServlet.java 2>&1 || \
+    (echo "=== Compilation failed, trying with extracted classes ===" && \
+     mkdir -p /tmp/servlet-extract && \
+     cd /tmp/servlet-extract && \
+     jar xf /tmp/servlet-api.jar && \
+     javac -cp "/tmp/servlet-extract" \
+           -d /build/webapp/WEB-INF/classes \
+           /build/EvaluateServlet.java) && \
     echo "=== Servlet compiled successfully ===" && \
     ls -la /build/webapp/WEB-INF/classes/ && \
     test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
