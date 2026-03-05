@@ -103,11 +103,13 @@ RUN echo "=== Compiling servlet ===" && \
     echo "=== Checking servlet-api.jar ===" && \
     ls -lh /tmp/servlet-api.jar && \
     echo "=== Verifying servlet API contents ===" && \
-    jar tf /tmp/servlet-api.jar | grep -E "(HttpServlet|HttpServletResponse)" | head -5 && \
+    jar tf /tmp/servlet-api.jar | grep "jakarta/servlet/http/HttpServlet" && \
+    echo "=== Checking Java version ===" && \
+    javac -version && \
     echo "=== Compiling with servlet API ===" && \
-    javac -cp "/tmp/servlet-api.jar" \
+    javac -verbose -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
-          /build/EvaluateServlet.java && \
+          /build/EvaluateServlet.java 2>&1 | head -30 && \
     echo "=== Servlet compiled successfully ===" && \
     ls -la /build/webapp/WEB-INF/classes/ && \
     test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
