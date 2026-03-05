@@ -1,30 +1,29 @@
 # Multi-stage build: Build OpenCDS from source, then create deployable webapp with REST JSON endpoint
 # Use Tomcat's servlet API for compilation to ensure jakarta namespace compatibility
 
-# Stage 1: Get servlet API from Tomcat
-FROM tomcat:9-jre17 AS tomcat-api
-# Check what servlet API files exist in Tomcat
-RUN ls -la /usr/local/tomcat/lib/ | grep -i servlet || echo "No servlet files found" && \
-    find /usr/local/tomcat/lib -name "*servlet*" -type f || echo "No servlet files in lib"
-
-# Stage 2: Build OpenCDS and compile servlet
+# Build OpenCDS and compile servlet
 FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
-# Copy all servlet-related jars from Tomcat and find the right one
-COPY --from=tomcat-api /usr/local/tomcat/lib/ /tmp/tomcat-lib/
-RUN echo "=== Checking Tomcat lib directory ===" && \
-    ls -la /tmp/tomcat-lib/ | head -20 && \
-    echo "=== Finding servlet API ===" && \
-    (find /tmp/tomcat-lib -name "*servlet*.jar" -exec cp {} /tmp/servlet-api.jar \; && \
-     echo "✅ Found servlet API") || \
-    (echo "⚠️  No servlet API found, checking all jars" && \
-     ls -la /tmp/tomcat-lib/*.jar | head -10 && \
-     # Try common names
-     (test -f /tmp/tomcat-lib/servlet-api.jar && cp /tmp/tomcat-lib/servlet-api.jar /tmp/servlet-api.jar) || \
-     (test -f /tmp/tomcat-lib/jakarta.servlet-api.jar && cp /tmp/tomcat-lib/jakarta.servlet-api.jar /tmp/servlet-api.jar) || \
-     (echo "ERROR: Could not find servlet API in Tomcat lib" && exit 1))
+# Download Jakarta Servlet API 5.0.0 (has jakarta namespace, compatible with Tomcat 9)
+# Try multiple URLs to find the correct one
+RUN echo "=== Downloading servlet API ===" && \
+    (curl -L -o /tmp/servlet-api.jar \
+     https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar || \
+     curl -L -o /tmp/servlet-api.jar \
+     https://repo.maven.apache.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar) && \
+    test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
+    echo "=== Verifying servlet-api.jar ===" && \
+    ls -lh /tmp/servlet-api.jar && \
+    echo "=== Checking jar contents ===" && \
+    jar tf /tmp/servlet-api.jar | head -30 && \
+    echo "=== Verifying jakarta packages ===" && \
+    (jar tf /tmp/servlet-api.jar | grep -q "jakarta/servlet/http/HttpServlet" && \
+     echo "✅ Found jakarta packages") || \
+    (echo "❌ ERROR: servlet-api.jar contains javax instead of jakarta!" && \
+     jar tf /tmp/servlet-api.jar | grep "servlet/http" | head -5 && \
+     exit 1)
 
 # Copy OpenCDS source code
 COPY opencds /build/opencds
