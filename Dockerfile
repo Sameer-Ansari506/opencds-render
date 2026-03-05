@@ -122,27 +122,7 @@ RUN echo "=== Copying OpenCDS configuration files ===" && \
     echo '<?xml version="1.0" encoding="UTF-8"?><rest:pluginPackages xmlns:rest="org.opencds.config.rest.v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="org.opencds.config.rest.v2 ../schema/OpenCDSConfigRest.xsd"></rest:pluginPackages>' > \
         /build/webapp/WEB-INF/classes/resources/plugins/opencds-plugins.xml && \
     # Create minimal semanticSignifiers.xml with only VMR (remove FHIR/CDS Hooks that require missing classes)
-    cat > /build/webapp/WEB-INF/classes/resources/semanticSignifiers.xml << 'EOFSEM'
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:semanticSignifiers xmlns:ns2="org.opencds.config.rest.v2" xmlns:ns3="org.opencds.config.v2" xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-    <semanticSignifier>
-        <identifier scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />
-        <name>org.opencds.vmr^VMR^1.0</name>
-        <description>org.opencds.vmr^VMR^1.0</description>
-        <xsdComputableDefinition>
-            <xsdRootGlobalElementName>CDSInput</xsdRootGlobalElementName>
-            <xsdURL>org.opencds.vmr.v1_0.schema</xsdURL>
-        </xsdComputableDefinition>
-        <entryPoint>org.opencds.service.evaluate.CDSInputEntryPoint</entryPoint>
-        <exitPoint>org.opencds.service.evaluate.CDSOutputExitPoint</exitPoint>
-        <factListsBuilder>org.opencds.service.evaluate.CdsInputFactListsBuilder</factListsBuilder>
-        <resultSetBuilder>org.opencds.service.evaluate.CdsOutputResultSetBuilder</resultSetBuilder>
-        <timestamp>2014-11-03T15:24:57.212-07:00</timestamp>
-        <userId>phillip</userId>
-    </semanticSignifier>
-</ns2:semanticSignifiers>
-EOFSEM
-    && \
+    printf '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<ns2:semanticSignifiers xmlns:ns2="org.opencds.config.rest.v2" xmlns:ns3="org.opencds.config.v2" xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n    <semanticSignifier>\n        <identifier scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />\n        <name>org.opencds.vmr^VMR^1.0</name>\n        <description>org.opencds.vmr^VMR^1.0</description>\n        <xsdComputableDefinition>\n            <xsdRootGlobalElementName>CDSInput</xsdRootGlobalElementName>\n            <xsdURL>org.opencds.vmr.v1_0.schema</xsdURL>\n        </xsdComputableDefinition>\n        <entryPoint>org.opencds.service.evaluate.CDSInputEntryPoint</entryPoint>\n        <exitPoint>org.opencds.service.evaluate.CDSOutputExitPoint</exitPoint>\n        <factListsBuilder>org.opencds.service.evaluate.CdsInputFactListsBuilder</factListsBuilder>\n        <resultSetBuilder>org.opencds.service.evaluate.CdsOutputResultSetBuilder</resultSetBuilder>\n        <timestamp>2014-11-03T15:24:57.212-07:00</timestamp>\n        <userId>phillip</userId>\n    </semanticSignifier>\n</ns2:semanticSignifiers>\n' > /build/webapp/WEB-INF/classes/resources/semanticSignifiers.xml && \
     echo "✅ OpenCDS configuration files copied (minimal config - VMR only, plugins and FHIR hooks disabled)"
 
 # Create REST servlet Java source with OpenCDS integration
