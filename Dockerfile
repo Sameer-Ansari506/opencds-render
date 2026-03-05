@@ -125,6 +125,79 @@ RUN echo "=== Copying OpenCDS configuration files ===" && \
     printf '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<ns2:semanticSignifiers xmlns:ns2="org.opencds.config.rest.v2" xmlns:ns3="org.opencds.config.v2" xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n    <semanticSignifier>\n        <identifier scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />\n        <name>org.opencds.vmr^VMR^1.0</name>\n        <description>org.opencds.vmr^VMR^1.0</description>\n        <xsdComputableDefinition>\n            <xsdRootGlobalElementName>CDSInput</xsdRootGlobalElementName>\n            <xsdURL>org.opencds.vmr.v1_0.schema</xsdURL>\n        </xsdComputableDefinition>\n        <entryPoint>org.opencds.service.evaluate.CDSInputEntryPoint</entryPoint>\n        <exitPoint>org.opencds.service.evaluate.CDSOutputExitPoint</exitPoint>\n        <factListsBuilder>org.opencds.service.evaluate.CdsInputFactListsBuilder</factListsBuilder>\n        <resultSetBuilder>org.opencds.service.evaluate.CdsOutputResultSetBuilder</resultSetBuilder>\n        <timestamp>2014-11-03T15:24:57.212-07:00</timestamp>\n        <userId>phillip</userId>\n    </semanticSignifier>\n</ns2:semanticSignifiers>\n' > /build/webapp/WEB-INF/classes/resources/semanticSignifiers.xml && \
     echo "✅ OpenCDS configuration files copied (minimal config - VMR only, plugins and FHIR hooks disabled)"
 
+# Create execution engines configuration
+# Note: We're using a Drools adapter identifier, but the actual adapter classes may not be available
+# OpenCDS will attempt to load the adapter dynamically. If it fails, the knowledge module won't load.
+RUN echo "=== Creating execution engines configuration ===" && \
+    printf '%s\n' \
+        '<?xml version="1.0" encoding="UTF-8"?>' \
+        '<ns2:executionEngines xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns2="org.opencds.config.rest.v2">' \
+        '    <executionEngine>' \
+        '        <identifier>org.opencds.service.drools.v55.DroolsAdapter</identifier>' \
+        '        <adapter>org.opencds.service.drools.v55.NewDroolsAdapter</adapter>' \
+        '        <context>org.opencds.service.drools.v55.DroolsExecutionContext</context>' \
+        '        <knowledgeLoader>org.opencds.service.drools.v55.DroolsKnowledgeLoader</knowledgeLoader>' \
+        '        <description>Drools 5.5 based adapter</description>' \
+        '        <timestamp>2014-04-08T00:00:00</timestamp>' \
+        '        <userId>phillip</userId>' \
+        '        <supportedOperation>EVALUATION.EVALUATE</supportedOperation>' \
+        '        <supportedOperation>EVALUATION.EVALUATE_AT_SPECIFIED_TIME</supportedOperation>' \
+        '    </executionEngine>' \
+        '</ns2:executionEngines>' > /build/webapp/WEB-INF/classes/resources/executionEngines.xml && \
+    echo "✅ Execution engines configuration created"
+
+# Create knowledge modules configuration
+RUN echo "=== Creating knowledge modules configuration ===" && \
+    printf '%s\n' \
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
+        '<ns2:knowledgeModules xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns2="org.opencds.config.rest.v2" xmlns:ns3="org.opencds.config.v2">' \
+        '    <knowledgeModule>' \
+        '        <identifier scopingEntityId="org.opencds" businessId="veda-basic" version="1.0.0" />' \
+        '        <status>APPROVED</status>' \
+        '        <executionEngine>org.opencds.service.drools.v55.DroolsAdapter</executionEngine>' \
+        '        <semanticSignifierId scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />' \
+        '        <package>' \
+        '            <packageType>DRL</packageType>' \
+        '            <packageId>org.opencds^veda-basic^1.0.0.drl</packageId>' \
+        '        </package>' \
+        '        <timestamp>2024-01-01T00:00:00</timestamp>' \
+        '        <userId>veda</userId>' \
+        '    </knowledgeModule>' \
+        '</ns2:knowledgeModules>' > /build/webapp/WEB-INF/classes/resources/knowledgeModules.xml && \
+    echo "✅ Knowledge modules configuration created"
+
+# Create minimal knowledge package (DRL file)
+RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
+    mkdir -p /build/webapp/WEB-INF/classes/resources/knowledgePackages && \
+    printf '%s\n' \
+        'package VedaBasic_v1_0_0' \
+        '' \
+        'import org.opencds.vmr.v1_0.internal.ClinicalStatement' \
+        'import org.opencds.vmr.v1_0.internal.EntityBase' \
+        '' \
+        'global java.util.Date evalTime' \
+        'global String clientLanguage' \
+        'global String clientTimeZoneOffset' \
+        'global String focalPersonId' \
+        '' \
+        '// Minimal rule: return all clinical statements and entities' \
+        'rule "ReturnAllClinicalStatements"' \
+        '    dialect "mvel"' \
+        '    when' \
+        '        $cs : ClinicalStatement()' \
+        '    then' \
+        '        $cs.setToBeReturned(true);' \
+        'end' \
+        '' \
+        'rule "ReturnAllEntities"' \
+        '    dialect "mvel"' \
+        '    when' \
+        '        $entity : EntityBase()' \
+        '    then' \
+        '        $entity.setToBeReturned(true);' \
+        'end' > /build/webapp/WEB-INF/classes/resources/knowledgePackages/org.opencds^veda-basic^1.0.0.drl && \
+    echo "✅ Knowledge package (DRL file) created"
+
 # Create REST servlet Java source with OpenCDS integration
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
 import java.io.*;
@@ -283,12 +356,26 @@ public class EvaluateServlet extends HttpServlet {
             
             String jsonResponse;
             if (evaluationService == null || knowledgeRepository == null) {
-                // Fallback to mock response if OpenCDS not initialized
-                getServletContext().log("Using mock response (OpenCDS not initialized)");
-                jsonResponse = getMockResponse(requestJson);
+                // OpenCDS not initialized - return error
+                getServletContext().log("ERROR: OpenCDS not initialized");
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "OpenCDS not initialized");
+                error.addProperty("message", "OpenCDS evaluation service is not available");
+                jsonResponse = gson.toJson(error);
             } else {
-                // Use real OpenCDS evaluation
-                jsonResponse = evaluateWithOpenCDS(requestJson);
+                // Check if knowledge modules are available
+                List<KnowledgeModule> kms = knowledgeRepository.getKnowledgeModuleService().getAll();
+                if (kms.isEmpty()) {
+                    // No knowledge modules configured - return error
+                    getServletContext().log("ERROR: No knowledge modules available");
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "No knowledge modules available");
+                    error.addProperty("message", "OpenCDS is initialized but no knowledge modules are configured. Please configure knowledge modules in knowledgeModules.xml");
+                    jsonResponse = gson.toJson(error);
+                } else {
+                    // Use real OpenCDS evaluation
+                    jsonResponse = evaluateWithOpenCDS(requestJson);
+                }
             }
             
             response.setStatus(200);
@@ -340,7 +427,12 @@ public class EvaluateServlet extends HttpServlet {
                        km.getKMId().getVersion();
                 getServletContext().log("Using default KM: " + kmId);
             } else {
-                throw new Exception("No knowledge modules available");
+                // No knowledge modules configured - return error
+                getServletContext().log("ERROR: No knowledge modules available in OpenCDS configuration");
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "No knowledge modules available");
+                error.addProperty("message", "No knowledge modules are configured in OpenCDS");
+                return gson.toJson(error);
             }
         }
         
