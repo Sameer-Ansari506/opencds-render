@@ -20,10 +20,10 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Download Jakarta Servlet API 6.0.0 (latest, definitely has jakarta namespace)
-RUN echo "=== Downloading Jakarta Servlet API 6.0.0 ===" && \
+# Download Jakarta Servlet API 4.0.4 (compatible with Tomcat 9, has jakarta namespace)
+RUN echo "=== Downloading Jakarta Servlet API 4.0.4 ===" && \
     curl -L -f -o /tmp/servlet-api.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar && \
+    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/4.0.4/jakarta.servlet-api-4.0.4.jar && \
     test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
     echo "=== Verifying servlet-api.jar ===" && \
     ls -lh /tmp/servlet-api.jar && \
@@ -35,7 +35,10 @@ RUN echo "=== Downloading Jakarta Servlet API 6.0.0 ===" && \
     (echo "❌ ERROR: jar does NOT contain jakarta packages!" && \
      echo "Found these servlet classes instead:" && \
      jar tf /tmp/servlet-api.jar | grep "servlet/http" | head -5 && \
-     exit 1)
+     exit 1) && \
+    echo "=== Copying servlet API to WAR lib directory ===" && \
+    cp /tmp/servlet-api.jar /build/webapp/WEB-INF/lib/jakarta.servlet-api.jar && \
+    echo "✅ Servlet API added to WAR"
 
 # Create REST servlet Java source (returns JSON) - Using Jakarta EE
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
