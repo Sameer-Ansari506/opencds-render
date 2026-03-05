@@ -3,15 +3,28 @@
 
 # Stage 1: Get servlet API from Tomcat
 FROM tomcat:9-jre17 AS tomcat-api
-# Tomcat 9 includes jakarta.servlet-api.jar in /usr/local/tomcat/lib/
+# Check what servlet API files exist in Tomcat
+RUN ls -la /usr/local/tomcat/lib/ | grep -i servlet || echo "No servlet files found" && \
+    find /usr/local/tomcat/lib -name "*servlet*" -type f || echo "No servlet files in lib"
 
 # Stage 2: Build OpenCDS and compile servlet
 FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
-# Copy servlet API from Tomcat (this has the correct jakarta namespace)
-COPY --from=tomcat-api /usr/local/tomcat/lib/jakarta.servlet-api.jar /tmp/servlet-api.jar
+# Copy all servlet-related jars from Tomcat and find the right one
+COPY --from=tomcat-api /usr/local/tomcat/lib/ /tmp/tomcat-lib/
+RUN echo "=== Checking Tomcat lib directory ===" && \
+    ls -la /tmp/tomcat-lib/ | head -20 && \
+    echo "=== Finding servlet API ===" && \
+    (find /tmp/tomcat-lib -name "*servlet*.jar" -exec cp {} /tmp/servlet-api.jar \; && \
+     echo "✅ Found servlet API") || \
+    (echo "⚠️  No servlet API found, checking all jars" && \
+     ls -la /tmp/tomcat-lib/*.jar | head -10 && \
+     # Try common names
+     (test -f /tmp/tomcat-lib/servlet-api.jar && cp /tmp/tomcat-lib/servlet-api.jar /tmp/servlet-api.jar) || \
+     (test -f /tmp/tomcat-lib/jakarta.servlet-api.jar && cp /tmp/tomcat-lib/jakarta.servlet-api.jar /tmp/servlet-api.jar) || \
+     (echo "ERROR: Could not find servlet API in Tomcat lib" && exit 1))
 
 # Copy OpenCDS source code
 COPY opencds /build/opencds
