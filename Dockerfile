@@ -134,19 +134,29 @@ RUN apt-get update && apt-get install -y curl default-jdk && rm -rf /var/lib/apt
 COPY --from=builder /build/opencds.war /tmp/opencds.war
 
 # Extract WAR, compile servlet with Jakarta EE, and repackage
+# Split into separate RUN commands to better identify failures
+RUN cd /tmp && jar xf opencds.war
+
 RUN cd /tmp && \
-    jar xf opencds.war && \
     echo "=== Compiling servlet ===" && \
     javac -cp "/usr/local/tomcat/lib/*" \
           -d WEB-INF/classes \
-          WEB-INF/classes/EvaluateServlet.java 2>&1 && \
-    echo "=== Servlet compiled ===" && \
+          WEB-INF/classes/EvaluateServlet.java
+
+RUN cd /tmp && \
+    echo "=== Checking compiled class ===" && \
     ls -la WEB-INF/classes/ && \
+    test -f WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not found!" && exit 1)
+
+RUN cd /tmp && \
+    echo "=== Updating WAR with servlet ===" && \
     jar uf opencds.war WEB-INF/classes/EvaluateServlet.class && \
-    echo "=== WAR updated ===" && \
-    jar tf opencds.war | grep EvaluateServlet && \
+    echo "=== Verifying WAR contents ===" && \
+    jar tf opencds.war | grep -E "(EvaluateServlet|web.xml)" || (echo "ERROR: Servlet not in WAR!" && exit 1)
+
+RUN cd /tmp && \
     mv opencds.war /usr/local/tomcat/webapps/opencds.war && \
-    echo "=== WAR deployed ===" && \
+    echo "=== WAR deployed successfully ===" && \
     rm -rf WEB-INF META-INF index.html
 
 # Expose port
