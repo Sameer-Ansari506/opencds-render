@@ -142,6 +142,7 @@ RUN echo "=== Copying OpenCDS configuration files ===" && \
     </semanticSignifier>
 </ns2:semanticSignifiers>
 EOFSEM
+    && \
     echo "✅ OpenCDS configuration files copied (minimal config - VMR only, plugins and FHIR hooks disabled)"
 
 # Create REST servlet Java source with OpenCDS integration
