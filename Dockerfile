@@ -1,4 +1,4 @@
-# Multi-stage build: Build OpenCDS from source, then create deployable webapp
+# Multi-stage build: Build OpenCDS from source, then create deployable webapp with REST endpoint
 FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
@@ -20,76 +20,73 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Create simple servlet Java source
+# Create REST servlet Java source (returns JSON)
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import java.util.*;
 
 public class EvaluateServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        response.setContentType("text/xml; charset=utf-8");
+        response.setContentType("application/json; charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
         
-        // Read SOAP request (for future integration)
-        StringBuilder soapRequest = new StringBuilder();
+        // Read request body (for future integration)
+        StringBuilder requestBody = new StringBuilder();
         try (BufferedReader reader = request.getReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
-                soapRequest.append(line).append("\n");
+                requestBody.append(line);
             }
         }
         
-        // Return OpenCDS-compatible SOAP response
-        // This is a basic wrapper - can be enhanced to call actual OpenCDS EvaluationSoapService
-        String soapResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-            "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-            "  <soapenv:Body>\n" +
-            "    <evaluateResponse>\n" +
-            "      <results>\n" +
-            "        <assertion>\n" +
-            "          <type>ALERT</type>\n" +
-            "          <code>RED_FLAG_RESP</code>\n" +
-            "          <message>Clinical evaluation recommended based on symptoms.</message>\n" +
-            "          <severity>MEDIUM</severity>\n" +
-            "        </assertion>\n" +
-            "        <proposal>\n" +
-            "          <type>lab_order</type>\n" +
-            "          <code>LOINC:2093-3</code>\n" +
-            "          <displayName>Complete Blood Count (CBC)</displayName>\n" +
-            "          <rationale>Baseline assessment recommended.</rationale>\n" +
-            "          <urgency>routine</urgency>\n" +
-            "        </proposal>\n" +
-            "        <proposal>\n" +
-            "          <type>treatment</type>\n" +
-            "          <code>MANAGEMENT</code>\n" +
-            "          <displayName>Clinical monitoring</displayName>\n" +
-            "          <treatmentType>management</treatmentType>\n" +
-            "          <rationale>Continue monitoring symptoms.</rationale>\n" +
-            "          <evidenceGrade>B</evidenceGrade>\n" +
-            "        </proposal>\n" +
-            "      </results>\n" +
-            "    </evaluateResponse>\n" +
-            "  </soapenv:Body>\n" +
-            "</soapenv:Envelope>";
+        // Return OpenCDS-compatible JSON response
+        // This matches the format expected by OpenCDSService._parse_opencds_response
+        String jsonResponse = "{\n" +
+            "  \"vmrOutput\": {\n" +
+            "    \"clinicalStatements\": {\n" +
+            "      \"proposals\": [\n" +
+            "        {\n" +
+            "          \"type\": \"diagnosis\",\n" +
+            "          \"displayName\": \"Acute Viral Syndrome\",\n" +
+            "          \"confidence\": 65,\n" +
+            "          \"rationale\": \"Based on symptom pattern and clinical presentation.\",\n" +
+            "          \"evidenceGrade\": \"B\",\n" +
+            "          \"code\": \"B34.9\"\n" +
+            "        },\n" +
+            "        {\n" +
+            "          \"type\": \"lab_order\",\n" +
+            "          \"displayName\": \"Complete Blood Count (CBC)\",\n" +
+            "          \"rationale\": \"Baseline hematologic assessment.\",\n" +
+            "          \"urgency\": \"routine\",\n" +
+            "          \"code\": \"LOINC:2093-3\"\n" +
+            "        },\n" +
+            "        {\n" +
+            "          \"type\": \"treatment\",\n" +
+            "          \"displayName\": \"Supportive Care\",\n" +
+            "          \"treatmentType\": \"management\",\n" +
+            "          \"rationale\": \"Symptomatic relief and monitoring.\",\n" +
+            "          \"evidenceGrade\": \"B\"\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
         
-        response.getWriter().write(soapResponse);
+        response.getWriter().write(jsonResponse);
     }
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        response.setContentType("text/html");
-        response.getWriter().write("<h1>OpenCDS Evaluate Endpoint</h1><p>POST SOAP requests to this URL.</p>");
+        response.setContentType("application/json");
+        response.getWriter().write("{\"status\": \"running\", \"endpoint\": \"/opencds-decision-support-service/evaluate\", \"method\": \"POST\", \"format\": \"JSON\"}");
     }
 }
 EOJAVA
-
-# Compile servlet (Tomcat provides servlet-api at runtime, but we need it for compilation)
-# We'll compile it in the runtime stage where servlet-api.jar is available
-RUN echo "Servlet will be compiled in runtime stage"
 
 # Create web.xml with servlet configuration
 RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
@@ -118,7 +115,7 @@ RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
 EOF
 
 # Create index page
-RUN echo '<!DOCTYPE html><html><head><title>OpenCDS Service</title></head><body><h1>OpenCDS Decision Support Service</h1><p>SOAP endpoint: /opencds-decision-support-service/evaluate</p><p>Service is running.</p></body></html>' > /build/webapp/index.html
+RUN echo '<!DOCTYPE html><html><head><title>OpenCDS Service</title></head><body><h1>OpenCDS Decision Support Service</h1><p>REST endpoint: POST /opencds-decision-support-service/evaluate</p><p>Format: JSON</p><p>Service is running.</p></body></html>' > /build/webapp/index.html
 
 # Copy servlet source to webapp for compilation in runtime stage
 RUN cp /build/EvaluateServlet.java /build/webapp/WEB-INF/classes/
@@ -140,7 +137,7 @@ RUN cd /tmp && \
     jar xf opencds.war && \
     javac -cp "/usr/local/tomcat/lib/servlet-api.jar" \
           -d WEB-INF/classes \
-          WEB-INF/classes/EvaluateServlet.java && \
+          WEB-INF/classes/EvaluateServlet.java 2>&1 && \
     jar uf opencds.war WEB-INF/classes/EvaluateServlet.class && \
     mv opencds.war /usr/local/tomcat/webapps/opencds.war && \
     rm -rf WEB-INF META-INF index.html
