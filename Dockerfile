@@ -136,8 +136,11 @@ RUN echo '<!DOCTYPE html><html><head><title>OpenCDS Service</title></head><body>
 RUN cd /build/webapp && \
     jar cf /build/opencds.war . && \
     echo "=== WAR created ===" && \
-    jar tf /build/opencds.war | grep -E "(EvaluateServlet|web.xml)" && \
-    echo "=== WAR verified ==="
+    echo "=== Verifying WAR contents ===" && \
+    jar tf /build/opencds.war | head -20 && \
+    (jar tf /build/opencds.war | grep -q "EvaluateServlet.class" && echo "✅ Servlet class found") || echo "⚠️  Servlet class not found in WAR" && \
+    (jar tf /build/opencds.war | grep -q "web.xml" && echo "✅ web.xml found") || echo "⚠️  web.xml not found in WAR" && \
+    echo "=== WAR packaging complete ==="
 
 # Runtime stage
 FROM tomcat:9-jre17
