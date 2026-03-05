@@ -20,6 +20,10 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
+# Download Jakarta Servlet API for compilation
+RUN mvn dependency:get -Dartifact=jakarta.servlet:jakarta.servlet-api:6.0.0 -Ddest=/tmp/servlet-api.jar || \
+    curl -L -o /tmp/servlet-api.jar https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar
+
 # Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
 import java.io.*;
@@ -89,6 +93,14 @@ public class EvaluateServlet extends HttpServlet {
 }
 EOJAVA
 
+# Compile servlet in builder stage (has Java compiler)
+RUN echo "=== Compiling servlet ===" && \
+    javac -cp "/tmp/servlet-api.jar" \
+          -d /build/webapp/WEB-INF/classes \
+          /build/EvaluateServlet.java && \
+    echo "=== Servlet compiled successfully ===" && \
+    ls -la /build/webapp/WEB-INF/classes/
+
 # Create web.xml with servlet configuration (backup - annotation should work)
 RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -118,46 +130,21 @@ EOF
 # Create index page
 RUN echo '<!DOCTYPE html><html><head><title>OpenCDS Service</title></head><body><h1>OpenCDS Decision Support Service</h1><p>REST endpoint: POST /opencds-decision-support-service/evaluate</p><p>Format: JSON</p><p>Service is running.</p></body></html>' > /build/webapp/index.html
 
-# Copy servlet source to webapp for compilation in runtime stage
-RUN cp /build/EvaluateServlet.java /build/webapp/WEB-INF/classes/
-
-# Package as WAR (servlet will be compiled in runtime stage)
-RUN cd /build/webapp && jar cf /build/opencds.war .
+# Package as WAR (servlet already compiled)
+RUN cd /build/webapp && \
+    jar cf /build/opencds.war . && \
+    echo "=== WAR created ===" && \
+    jar tf /build/opencds.war | grep -E "(EvaluateServlet|web.xml)" && \
+    echo "=== WAR verified ==="
 
 # Runtime stage
 FROM tomcat:9-jre17
 
-# Install curl and Java compiler for servlet compilation
-RUN apt-get update && apt-get install -y curl default-jdk && rm -rf /var/lib/apt/lists/*
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Copy WAR file from builder stage
-COPY --from=builder /build/opencds.war /tmp/opencds.war
-
-# Extract WAR, compile servlet with Jakarta EE, and repackage
-# Split into separate RUN commands to better identify failures
-RUN cd /tmp && jar xf opencds.war
-
-RUN cd /tmp && \
-    echo "=== Compiling servlet ===" && \
-    javac -cp "/usr/local/tomcat/lib/*" \
-          -d WEB-INF/classes \
-          WEB-INF/classes/EvaluateServlet.java
-
-RUN cd /tmp && \
-    echo "=== Checking compiled class ===" && \
-    ls -la WEB-INF/classes/ && \
-    test -f WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not found!" && exit 1)
-
-RUN cd /tmp && \
-    echo "=== Updating WAR with servlet ===" && \
-    jar uf opencds.war WEB-INF/classes/EvaluateServlet.class && \
-    echo "=== Verifying WAR contents ===" && \
-    jar tf opencds.war | grep -E "(EvaluateServlet|web.xml)" || (echo "ERROR: Servlet not in WAR!" && exit 1)
-
-RUN cd /tmp && \
-    mv opencds.war /usr/local/tomcat/webapps/opencds.war && \
-    echo "=== WAR deployed successfully ===" && \
-    rm -rf WEB-INF META-INF index.html
+# Copy WAR file from builder stage (servlet already compiled)
+COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/opencds.war
 
 # Expose port
 EXPOSE 8080
