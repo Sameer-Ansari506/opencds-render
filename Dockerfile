@@ -149,7 +149,11 @@ RUN cd /build/webapp && \
     jar cf /build/opencds.war . && \
     echo "=== WAR created ===" && \
     echo "=== Verifying WAR contents ===" && \
-    jar tf /build/opencds.war | grep -E "(EvaluateServlet|web.xml)" && \
+    jar tf /build/opencds.war | head -30 && \
+    echo "=== Checking for servlet class ===" && \
+    jar tf /build/opencds.war | grep "EvaluateServlet.class" && \
+    echo "=== Checking for web.xml ===" && \
+    jar tf /build/opencds.war | grep "web.xml" && \
     echo "=== WAR verified ==="
 
 # Runtime stage
@@ -159,7 +163,8 @@ FROM tomcat:9-jre17
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy WAR file from builder stage
-COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/opencds.war
+# Deploy as ROOT.war so it's accessible at root path
+COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/ROOT.war
 
 # Expose port
 EXPOSE 8080
