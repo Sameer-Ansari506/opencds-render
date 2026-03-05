@@ -17,17 +17,56 @@ RUN mkdir -p /build/webapp/WEB-INF/lib && \
 # Copy all OpenCDS JARs to webapp lib
 RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Copy dependencies from Maven local repository
-# Include OpenCDS dependencies and transitive dependencies
-RUN echo "=== Copying OpenCDS dependencies ===" && \
-    find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    echo "=== Copying common dependencies ===" && \
-    find /root/.m2/repository -path "*/commons-logging/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    find /root/.m2/repository -path "*/org/apache/logging/log4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    find /root/.m2/repository -path "*/org/slf4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    find /root/.m2/repository -path "*/jakarta/xml/bind/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    find /root/.m2/repository -path "*/jakarta/activation/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
-    echo "✅ Dependencies copied"
+# Use Maven to get the complete dependency list, then copy from local repository
+# This ensures we get ALL transitive dependencies without re-downloading
+RUN echo "=== Getting dependency list and copying from local Maven repository ===" && \
+    cd /build/opencds/opencds-parent && \
+    # First, get the dependency tree to see what we need (this uses local repo only, no downloads)
+    echo "Analyzing dependencies for key modules..." && \
+    mvn dependency:tree -pl opencds-dss-evaluation,opencds-config-file,opencds-vmr-evaluation -am -DoutputFile=/tmp/deps.txt 2>&1 | tail -10 && \
+    # Extract all groupId:artifactId:version from dependency tree and copy from local repo
+    echo "Copying dependencies from local Maven repository..." && \
+    # Copy all JARs that match OpenCDS and its dependencies from local repo
+    # This includes: OpenCDS modules, JAXB, logging, and all transitive deps
+    find /root/.m2/repository \
+        \( -path "*/org/opencds/*/*.jar" \
+        -o -path "*/jakarta/xml/bind/*/*.jar" \
+        -o -path "*/jakarta/activation/*/*.jar" \
+        -o -path "*/org/glassfish/jaxb/*/*.jar" \
+        -o -path "*/com/sun/istack/*/*.jar" \
+        -o -path "*/commons-logging/*/*.jar" \
+        -o -path "*/org/apache/logging/log4j/*/*.jar" \
+        -o -path "*/org/slf4j/*/*.jar" \
+        -o -path "*/org/eclipse/angus/*/*.jar" \
+        \) \
+        -name "*.jar" \
+        -type f \
+        -not -name "*-sources.jar" \
+        -not -name "*-javadoc.jar" \
+        -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    # Also copy any other common dependencies that might be needed
+    # (This is a safety net - copy common dependency patterns)
+    find /root/.m2/repository \
+        -name "*.jar" \
+        -type f \
+        -not -name "*-sources.jar" \
+        -not -name "*-javadoc.jar" \
+        -not -path "*/maven-metadata*" \
+        -not -path "*/org/opencds/*" \
+        \( -path "*/org/apache/*/*.jar" \
+        -o -path "*/com/google/*/*.jar" \
+        -o -path "*/org/eclipse/*/*.jar" \
+        -o -path "*/jakarta/*/*.jar" \
+        -o -path "*/javax/*/*.jar" \
+        -o -path "*/com/sun/*/*.jar" \
+        \) \
+        -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    echo "✅ Dependencies copied from local Maven repository" && \
+    echo "Total JARs in lib: $(ls -1 /build/webapp/WEB-INF/lib/*.jar 2>/dev/null | wc -l)" && \
+    echo "Key dependencies present:" && \
+    (ls /build/webapp/WEB-INF/lib/*jaxb*.jar 2>/dev/null | wc -l && echo "JAXB JARs") || echo "No JAXB JARs found" && \
+    (ls /build/webapp/WEB-INF/lib/*istack*.jar 2>/dev/null | wc -l && echo "istack JARs") || echo "No istack JARs found" && \
+    (ls /build/webapp/WEB-INF/lib/*commons-logging*.jar 2>/dev/null | wc -l && echo "commons-logging JARs") || echo "No commons-logging JARs found"
 
 # Download Servlet API 4.0 (javax namespace - compatible with Tomcat 9)
 # Tomcat 9 uses Java EE 8 which uses javax.servlet, not jakarta.servlet
@@ -64,18 +103,8 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
     cp /tmp/commons-logging.jar /build/webapp/WEB-INF/lib/commons-logging.jar && \
     echo "✅ Apache Commons Logging added to WAR"
 
-# Download Jakarta XML Binding (JAXB) - required for Java 11+ (removed from JDK)
-RUN echo "=== Downloading Jakarta XML Binding ===" && \
-    curl -L -f -o /tmp/jakarta.xml.bind-api.jar \
-    https://repo1.maven.org/maven2/jakarta/xml/bind/jakarta.xml.bind-api/4.0.1/jakarta.xml.bind-api-4.0.1.jar && \
-    curl -L -f -o /tmp/jakarta.xml.bind-runtime.jar \
-    https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/4.0.2/jaxb-runtime-4.0.2.jar && \
-    curl -L -f -o /tmp/jakarta.activation-api.jar \
-    https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/2.1.2/jakarta.activation-api-2.1.2.jar && \
-    cp /tmp/jakarta.xml.bind-api.jar /build/webapp/WEB-INF/lib/ && \
-    cp /tmp/jakarta.xml.bind-runtime.jar /build/webapp/WEB-INF/lib/ && \
-    cp /tmp/jakarta.activation-api.jar /build/webapp/WEB-INF/lib/ && \
-    echo "✅ Jakarta XML Binding added to WAR"
+# Note: JAXB and all other dependencies are now automatically copied via Maven dependency plugin above
+# No need to manually download them
 
 # Copy OpenCDS configuration files to webapp
 RUN echo "=== Copying OpenCDS configuration files ===" && \
@@ -465,15 +494,16 @@ public class EvaluateServlet extends HttpServlet {
 }
 EOJAVA
 
-# Compile servlet with OpenCDS and Gson in classpath
+# Compile servlet with OpenCDS and all dependencies in classpath
 RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
-    echo "=== Building classpath ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar:/tmp/jakarta.xml.bind-api.jar:/tmp/jakarta.xml.bind-runtime.jar:/tmp/jakarta.activation-api.jar" && \
+    echo "=== Building classpath (includes all Maven dependencies) ===" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
+    echo "Classpath contains $(echo $CLASSPATH | tr ':' '\n' | wc -l) entries" && \
     echo "=== Compiling servlet with OpenCDS dependencies ===" && \
     javac -cp "$CLASSPATH" \
           -d /build/webapp/WEB-INF/classes \
