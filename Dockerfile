@@ -1,29 +1,7 @@
 # Multi-stage build: Build OpenCDS from source, then create deployable webapp with REST JSON endpoint
-# Use Tomcat's servlet API for compilation to ensure jakarta namespace compatibility
-
-# Build OpenCDS and compile servlet
 FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
-
-# Download Jakarta Servlet API 5.0.0 (has jakarta namespace, compatible with Tomcat 9)
-# Try multiple URLs to find the correct one
-RUN echo "=== Downloading servlet API ===" && \
-    (curl -L -o /tmp/servlet-api.jar \
-     https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar || \
-     curl -L -o /tmp/servlet-api.jar \
-     https://repo.maven.apache.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar) && \
-    test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
-    echo "=== Verifying servlet-api.jar ===" && \
-    ls -lh /tmp/servlet-api.jar && \
-    echo "=== Checking jar contents ===" && \
-    jar tf /tmp/servlet-api.jar | head -30 && \
-    echo "=== Verifying jakarta packages ===" && \
-    (jar tf /tmp/servlet-api.jar | grep -q "jakarta/servlet/http/HttpServlet" && \
-     echo "✅ Found jakarta packages") || \
-    (echo "❌ ERROR: servlet-api.jar contains javax instead of jakarta!" && \
-     jar tf /tmp/servlet-api.jar | grep "servlet/http" | head -5 && \
-     exit 1)
 
 # Copy OpenCDS source code
 COPY opencds /build/opencds
@@ -42,13 +20,24 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Verify servlet API from Tomcat
-RUN echo "=== Verifying Tomcat servlet API ===" && \
+# Download Jakarta Servlet API 6.0.0 (latest, definitely has jakarta namespace)
+RUN echo "=== Downloading Jakarta Servlet API 6.0.0 ===" && \
+    curl -L -f -o /tmp/servlet-api.jar \
+    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar && \
+    test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
+    echo "=== Verifying servlet-api.jar ===" && \
     ls -lh /tmp/servlet-api.jar && \
-    jar tf /tmp/servlet-api.jar | grep "jakarta/servlet/http/HttpServlet" && \
-    echo "✅ Using Tomcat's servlet API with jakarta namespace"
+    echo "=== Checking first 20 entries in jar ===" && \
+    jar tf /tmp/servlet-api.jar | head -20 && \
+    echo "=== Verifying jakarta namespace ===" && \
+    (jar tf /tmp/servlet-api.jar | grep -q "^jakarta/servlet/http/HttpServlet.class$" && \
+     echo "✅ CONFIRMED: jar contains jakarta/servlet/http/HttpServlet.class") || \
+    (echo "❌ ERROR: jar does NOT contain jakarta packages!" && \
+     echo "Found these servlet classes instead:" && \
+     jar tf /tmp/servlet-api.jar | grep "servlet/http" | head -5 && \
+     exit 1)
 
-# Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
+# Create REST servlet Java source (returns JSON) - Using Jakarta EE
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
 import java.io.*;
 import jakarta.servlet.*;
@@ -72,7 +61,6 @@ public class EvaluateServlet extends HttpServlet {
         }
         
         // Return OpenCDS-compatible JSON response
-        // This matches the format expected by OpenCDSService._parse_opencds_response
         String jsonResponse = "{\n" +
             "  \"vmrOutput\": {\n" +
             "    \"clinicalStatements\": {\n" +
@@ -115,9 +103,11 @@ public class EvaluateServlet extends HttpServlet {
 }
 EOJAVA
 
-# Compile servlet using Tomcat's servlet API
-RUN echo "=== Compiling servlet with Tomcat's servlet API ===" && \
+# Compile servlet
+RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
+    javac -version && \
+    echo "=== Compiling with servlet API ===" && \
     javac -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
           /build/EvaluateServlet.java && \
@@ -154,15 +144,13 @@ EOF
 # Create index page
 RUN echo '<!DOCTYPE html><html><head><title>OpenCDS Service</title></head><body><h1>OpenCDS Decision Support Service</h1><p>REST endpoint: POST /opencds-decision-support-service/evaluate</p><p>Format: JSON</p><p>Service is running.</p></body></html>' > /build/webapp/index.html
 
-# Package as WAR (servlet already compiled)
+# Package as WAR
 RUN cd /build/webapp && \
     jar cf /build/opencds.war . && \
     echo "=== WAR created ===" && \
     echo "=== Verifying WAR contents ===" && \
-    jar tf /build/opencds.war | head -20 && \
-    (jar tf /build/opencds.war | grep -q "EvaluateServlet.class" && echo "✅ Servlet class found") || echo "⚠️  Servlet class not found in WAR" && \
-    (jar tf /build/opencds.war | grep -q "web.xml" && echo "✅ web.xml found") || echo "⚠️  web.xml not found in WAR" && \
-    echo "=== WAR packaging complete ==="
+    jar tf /build/opencds.war | grep -E "(EvaluateServlet|web.xml)" && \
+    echo "=== WAR verified ==="
 
 # Runtime stage
 FROM tomcat:9-jre17
@@ -170,7 +158,7 @@ FROM tomcat:9-jre17
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Copy WAR file from builder stage (servlet already compiled)
+# Copy WAR file from builder stage
 COPY --from=builder /build/opencds.war /usr/local/tomcat/webapps/opencds.war
 
 # Expose port
