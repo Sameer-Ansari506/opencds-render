@@ -21,7 +21,12 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
 # Download Jakarta Servlet API for compilation (Tomcat 9 uses version 4.0)
-RUN mvn dependency:get -Dartifact=jakarta.servlet:jakarta.servlet-api:4.0.4 -Dtransitive=false -Ddest=/tmp/servlet-api.jar && \
+# Use dependency:copy instead of dependency:get (get doesn't support -Ddest)
+RUN mvn dependency:copy \
+    -Dartifact=jakarta.servlet:jakarta.servlet-api:4.0.4 \
+    -DoutputDirectory=/tmp \
+    -Dmdep.stripVersion=true && \
+    mv /tmp/jakarta.servlet-api.jar /tmp/servlet-api.jar && \
     test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1)
 
 # Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
