@@ -17,8 +17,15 @@ RUN mkdir -p /build/webapp/WEB-INF/lib && \
 # Copy all OpenCDS JARs to webapp lib
 RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Copy dependencies from Maven local repository (selective - only OpenCDS related)
-RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
+# Copy dependencies from Maven local repository
+# Include OpenCDS dependencies and transitive dependencies
+RUN echo "=== Copying OpenCDS dependencies ===" && \
+    find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    echo "=== Copying common dependencies ===" && \
+    find /root/.m2/repository -path "*/commons-logging/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    find /root/.m2/repository -path "*/org/apache/logging/log4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    find /root/.m2/repository -path "*/org/slf4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    echo "✅ Dependencies copied"
 
 # Download Servlet API 4.0 (javax namespace - compatible with Tomcat 9)
 # Tomcat 9 uses Java EE 8 which uses javax.servlet, not jakarta.servlet
@@ -47,6 +54,13 @@ RUN echo "=== Downloading Gson for JSON parsing ===" && \
     https://repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar && \
     cp /tmp/gson.jar /build/webapp/WEB-INF/lib/gson.jar && \
     echo "✅ Gson added to WAR"
+
+# Download Apache Commons Logging (required by OpenCDS)
+RUN echo "=== Downloading Apache Commons Logging ===" && \
+    curl -L -f -o /tmp/commons-logging.jar \
+    https://repo1.maven.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.jar && \
+    cp /tmp/commons-logging.jar /build/webapp/WEB-INF/lib/commons-logging.jar && \
+    echo "✅ Apache Commons Logging added to WAR"
 
 # Copy OpenCDS configuration files to webapp
 RUN echo "=== Copying OpenCDS configuration files ===" && \
@@ -441,7 +455,7 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
