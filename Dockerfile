@@ -20,24 +20,18 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Download Jakarta Servlet API for compilation (Tomcat 9 uses Jakarta EE 8/9)
-# Try multiple sources to get the correct jakarta.servlet-api jar
-RUN (curl -L -o /tmp/servlet-api.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar || \
-    curl -L -o /tmp/servlet-api.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar || \
-    curl -L -o /tmp/servlet-api.jar \
-    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/4.0.0/jakarta.servlet-api-4.0.0.jar) && \
+# Download Jakarta Servlet API for compilation
+# Use version 5.0.0 which definitely has jakarta namespace
+RUN curl -L -o /tmp/servlet-api.jar \
+    https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/5.0.0/jakarta.servlet-api-5.0.0.jar && \
     test -f /tmp/servlet-api.jar || (echo "ERROR: Failed to download servlet-api.jar" && exit 1) && \
     echo "=== Verifying servlet-api.jar ===" && \
     ls -lh /tmp/servlet-api.jar && \
-    echo "=== Checking jar contents ===" && \
+    echo "=== Checking jar contents (first 30 entries) ===" && \
     jar tf /tmp/servlet-api.jar | head -30 && \
     echo "=== Verifying jakarta packages ===" && \
-    (jar tf /tmp/servlet-api.jar | grep -q "jakarta/servlet/http/HttpServlet" && echo "✅ Found jakarta packages") || \
-    (echo "❌ ERROR: servlet-api.jar contains javax instead of jakarta!" && \
-     jar tf /tmp/servlet-api.jar | grep "servlet/http" | head -5 && \
-     exit 1)
+    jar tf /tmp/servlet-api.jar | grep "jakarta/servlet/http/HttpServlet" && \
+    echo "✅ Found jakarta packages in servlet-api.jar"
 
 # Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
