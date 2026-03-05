@@ -97,11 +97,13 @@ EOJAVA
 
 # Compile servlet in builder stage (has Java compiler)
 RUN echo "=== Compiling servlet ===" && \
+    mkdir -p /build/webapp/WEB-INF/classes && \
     javac -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
           /build/EvaluateServlet.java && \
     echo "=== Servlet compiled successfully ===" && \
-    ls -la /build/webapp/WEB-INF/classes/
+    ls -la /build/webapp/WEB-INF/classes/ && \
+    test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
 
 # Create web.xml with servlet configuration (backup - annotation should work)
 RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
