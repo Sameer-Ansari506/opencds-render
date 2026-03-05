@@ -20,12 +20,14 @@ RUN find /build/opencds -name "*.jar" -type f -not -name "*-sources.jar" -not -n
 # Copy dependencies from Maven local repository (selective - only OpenCDS related)
 RUN find /root/.m2/repository -path "*/org/opencds/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true
 
-# Create REST servlet Java source (returns JSON)
+# Create REST servlet Java source (returns JSON) - Using Jakarta EE for Tomcat 9
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
 import java.io.*;
-import javax.servlet.*;
-import javax.servlet.http.*;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import jakarta.servlet.annotation.*;
 
+@WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) 
@@ -87,14 +89,14 @@ public class EvaluateServlet extends HttpServlet {
 }
 EOJAVA
 
-# Create web.xml with servlet configuration
+# Create web.xml with servlet configuration (backup - annotation should work)
 RUN cat > /build/webapp/WEB-INF/web.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="http://java.sun.com/xml/ns/javaee" 
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" 
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
-         http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
-         version="3.0">
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee 
+         https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+         version="5.0">
   <display-name>OpenCDS Decision Support Service</display-name>
   
   <servlet>
@@ -131,12 +133,15 @@ RUN apt-get update && apt-get install -y curl default-jdk && rm -rf /var/lib/apt
 # Copy WAR file from builder stage
 COPY --from=builder /build/opencds.war /tmp/opencds.war
 
-# Extract WAR, compile servlet, and repackage
+# Extract WAR, compile servlet with Jakarta EE, and repackage
 RUN cd /tmp && \
     jar xf opencds.war && \
-    javac -cp "/usr/local/tomcat/lib/servlet-api.jar" \
+    javac -cp "/usr/local/tomcat/lib/servlet-api.jar:/usr/local/tomcat/lib/jakarta.servlet-api.jar" \
           -d WEB-INF/classes \
-          WEB-INF/classes/EvaluateServlet.java 2>&1 && \
+          WEB-INF/classes/EvaluateServlet.java 2>&1 | head -20 || \
+    javac -cp "/usr/local/tomcat/lib/*" \
+          -d WEB-INF/classes \
+          WEB-INF/classes/EvaluateServlet.java 2>&1 | head -20 && \
     jar uf opencds.war WEB-INF/classes/EvaluateServlet.class && \
     mv opencds.war /usr/local/tomcat/webapps/opencds.war && \
     rm -rf WEB-INF META-INF index.html
