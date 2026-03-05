@@ -107,21 +107,42 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
 # No need to manually download them
 
 # Copy OpenCDS configuration files to webapp
-# Remove plugin configuration to avoid plugin loading errors (plugins not needed for basic evaluation)
+# Create minimal configuration with only VMR support (remove FHIR/CDS Hooks that require missing classes)
 RUN echo "=== Copying OpenCDS configuration files ===" && \
     mkdir -p /build/webapp/WEB-INF/classes/resources && \
+    # Copy base config files
     cp -r /build/opencds/opencds-parent/opencds-knowledge-repository-data/src/main/resources/resources/* \
           /build/webapp/WEB-INF/classes/resources/ 2>/dev/null || \
     (echo "WARNING: Could not copy all config files, continuing..." && \
      mkdir -p /build/webapp/WEB-INF/classes/resources && \
      echo "Config directory created") && \
-    # Remove or empty the plugins directory to prevent plugin loading errors
+    # Remove plugins to prevent plugin loading errors
     rm -rf /build/webapp/WEB-INF/classes/resources/plugins 2>/dev/null || true && \
     mkdir -p /build/webapp/WEB-INF/classes/resources/plugins && \
-    # Create an empty plugins.xml file to satisfy OpenCDS config requirements
     echo '<?xml version="1.0" encoding="UTF-8"?><rest:pluginPackages xmlns:rest="org.opencds.config.rest.v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="org.opencds.config.rest.v2 ../schema/OpenCDSConfigRest.xsd"></rest:pluginPackages>' > \
         /build/webapp/WEB-INF/classes/resources/plugins/opencds-plugins.xml && \
-    echo "✅ OpenCDS configuration files copied (plugins disabled)"
+    # Create minimal semanticSignifiers.xml with only VMR (remove FHIR/CDS Hooks that require missing classes)
+    cat > /build/webapp/WEB-INF/classes/resources/semanticSignifiers.xml << 'EOFSEM'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:semanticSignifiers xmlns:ns2="org.opencds.config.rest.v2" xmlns:ns3="org.opencds.config.v2" xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <semanticSignifier>
+        <identifier scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />
+        <name>org.opencds.vmr^VMR^1.0</name>
+        <description>org.opencds.vmr^VMR^1.0</description>
+        <xsdComputableDefinition>
+            <xsdRootGlobalElementName>CDSInput</xsdRootGlobalElementName>
+            <xsdURL>org.opencds.vmr.v1_0.schema</xsdURL>
+        </xsdComputableDefinition>
+        <entryPoint>org.opencds.service.evaluate.CDSInputEntryPoint</entryPoint>
+        <exitPoint>org.opencds.service.evaluate.CDSOutputExitPoint</exitPoint>
+        <factListsBuilder>org.opencds.service.evaluate.CdsInputFactListsBuilder</factListsBuilder>
+        <resultSetBuilder>org.opencds.service.evaluate.CdsOutputResultSetBuilder</resultSetBuilder>
+        <timestamp>2014-11-03T15:24:57.212-07:00</timestamp>
+        <userId>phillip</userId>
+    </semanticSignifier>
+</ns2:semanticSignifiers>
+EOFSEM
+    echo "✅ OpenCDS configuration files copied (minimal config - VMR only, plugins and FHIR hooks disabled)"
 
 # Create REST servlet Java source with OpenCDS integration
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
