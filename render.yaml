@@ -3,7 +3,7 @@ services:
     name: opencds-server
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile.build
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /opencds/
     envVars:
