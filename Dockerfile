@@ -35,11 +35,10 @@ import jakarta.servlet.annotation.*;
 
 @WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
-    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         response.setContentType("application/json; charset=utf-8");
-        response.setStatus(HttpServletResponse.SC_OK);
+        response.setStatus(200);
         
         // Read request body (for future integration)
         StringBuilder requestBody = new StringBuilder();
@@ -86,7 +85,6 @@ public class EvaluateServlet extends HttpServlet {
         response.getWriter().write(jsonResponse);
     }
     
-    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         response.setContentType("application/json");
@@ -98,6 +96,11 @@ EOJAVA
 # Compile servlet in builder stage (has Java compiler)
 RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
+    echo "=== Checking servlet-api.jar ===" && \
+    ls -lh /tmp/servlet-api.jar && \
+    echo "=== Verifying servlet API contents ===" && \
+    jar tf /tmp/servlet-api.jar | grep -E "(HttpServlet|HttpServletResponse)" | head -5 && \
+    echo "=== Compiling with servlet API ===" && \
     javac -cp "/tmp/servlet-api.jar" \
           -d /build/webapp/WEB-INF/classes \
           /build/EvaluateServlet.java && \
