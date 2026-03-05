@@ -107,6 +107,7 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
 # No need to manually download them
 
 # Copy OpenCDS configuration files to webapp
+# Remove plugin configuration to avoid plugin loading errors (plugins not needed for basic evaluation)
 RUN echo "=== Copying OpenCDS configuration files ===" && \
     mkdir -p /build/webapp/WEB-INF/classes/resources && \
     cp -r /build/opencds/opencds-parent/opencds-knowledge-repository-data/src/main/resources/resources/* \
@@ -114,7 +115,13 @@ RUN echo "=== Copying OpenCDS configuration files ===" && \
     (echo "WARNING: Could not copy all config files, continuing..." && \
      mkdir -p /build/webapp/WEB-INF/classes/resources && \
      echo "Config directory created") && \
-    echo "✅ OpenCDS configuration files copied"
+    # Remove or empty the plugins directory to prevent plugin loading errors
+    rm -rf /build/webapp/WEB-INF/classes/resources/plugins 2>/dev/null || true && \
+    mkdir -p /build/webapp/WEB-INF/classes/resources/plugins && \
+    # Create an empty plugins.xml file to satisfy OpenCDS config requirements
+    echo '<?xml version="1.0" encoding="UTF-8"?><rest:pluginPackages xmlns:rest="org.opencds.config.rest.v2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="org.opencds.config.rest.v2 ../schema/OpenCDSConfigRest.xsd"></rest:pluginPackages>' > \
+        /build/webapp/WEB-INF/classes/resources/plugins/opencds-plugins.xml && \
+    echo "✅ OpenCDS configuration files copied (plugins disabled)"
 
 # Create REST servlet Java source with OpenCDS integration
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
