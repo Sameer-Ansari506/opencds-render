@@ -25,6 +25,8 @@ RUN echo "=== Copying OpenCDS dependencies ===" && \
     find /root/.m2/repository -path "*/commons-logging/*/*.jar" -type f -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
     find /root/.m2/repository -path "*/org/apache/logging/log4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
     find /root/.m2/repository -path "*/org/slf4j/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    find /root/.m2/repository -path "*/jakarta/xml/bind/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
+    find /root/.m2/repository -path "*/jakarta/activation/*/*.jar" -type f -not -name "*-sources.jar" -not -name "*-javadoc.jar" -exec cp {} /build/webapp/WEB-INF/lib/ \; 2>/dev/null || true && \
     echo "✅ Dependencies copied"
 
 # Download Servlet API 4.0 (javax namespace - compatible with Tomcat 9)
@@ -61,6 +63,19 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
     https://repo1.maven.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.jar && \
     cp /tmp/commons-logging.jar /build/webapp/WEB-INF/lib/commons-logging.jar && \
     echo "✅ Apache Commons Logging added to WAR"
+
+# Download Jakarta XML Binding (JAXB) - required for Java 11+ (removed from JDK)
+RUN echo "=== Downloading Jakarta XML Binding ===" && \
+    curl -L -f -o /tmp/jakarta.xml.bind-api.jar \
+    https://repo1.maven.org/maven2/jakarta/xml/bind/jakarta.xml.bind-api/4.0.1/jakarta.xml.bind-api-4.0.1.jar && \
+    curl -L -f -o /tmp/jakarta.xml.bind-runtime.jar \
+    https://repo1.maven.org/maven2/org/glassfish/jaxb/jakarta.xml.bind/4.0.2/jakarta.xml.bind-4.0.2.jar && \
+    curl -L -f -o /tmp/jakarta.activation-api.jar \
+    https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/2.1.2/jakarta.activation-api-2.1.2.jar && \
+    cp /tmp/jakarta.xml.bind-api.jar /build/webapp/WEB-INF/lib/ && \
+    cp /tmp/jakarta.xml.bind-runtime.jar /build/webapp/WEB-INF/lib/ && \
+    cp /tmp/jakarta.activation-api.jar /build/webapp/WEB-INF/lib/ && \
+    echo "✅ Jakarta XML Binding added to WAR"
 
 # Copy OpenCDS configuration files to webapp
 RUN echo "=== Copying OpenCDS configuration files ===" && \
@@ -455,7 +470,7 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar:/tmp/jakarta.xml.bind-api.jar:/tmp/jakarta.xml.bind-runtime.jar:/tmp/jakarta.activation-api.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
