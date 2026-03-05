@@ -76,6 +76,7 @@ import org.opencds.config.api.strategy.ConfigStrategy;
 import org.opencds.config.file.FileConfigStrategy;
 import org.opencds.config.service.CacheServiceImpl;
 import org.opencds.common.structures.EvaluationRequestKMItem;
+import org.opencds.common.structures.EvaluationRequestDataItem;
 import org.opencds.common.structures.EvaluationResponseKMItem;
 import org.opencds.evaluation.service.EvaluationService;
 import org.opencds.evaluation.service.EvaluationServiceImpl;
@@ -281,14 +282,32 @@ public class EvaluateServlet extends HttpServlet {
         // Create evaluation request
         // NOTE: Full vMR conversion requires converting JSON to OpenCDS CDSInput format
         // For now, we'll create a minimal request to test the integration
-        EvaluationRequestKMItem evalRequest = new EvaluationRequestKMItem();
-        evalRequest.setRequestedKmId(kmId);
         
+        // Create EvaluationRequestDataItem
+        EvaluationRequestDataItem evalDataItem = new EvaluationRequestDataItem();
+        evalDataItem.setEvalTime(new java.util.Date());
+        evalDataItem.setClientLanguage("en-US");
+        evalDataItem.setClientTimeZoneOffset("+00:00");
+        // Set external fact model SSId - this should match the vMR format
+        // For vMR 1.0, the SSId is typically: "org.opencds.vmr^VMR^1.0"
+        evalDataItem.setExternalFactModelSSId("org.opencds.vmr^VMR^1.0");
+        evalDataItem.setInteractionId("evaluate-" + System.currentTimeMillis());
+        
+        // Create allFactLists - this is where the vMR data goes
+        // For now, create an empty map (minimal test)
         // TODO: Convert JSON vMR to OpenCDS internal vMR format (CDSInput)
         // This requires:
         // 1. Parse JSON vMR structure
         // 2. Convert to OpenCDS vMR Java objects (CDSInput)
-        // 3. Set on evalRequest
+        // 3. Build fact lists from CDSInput
+        Map<Class<?>, List<?>> allFactLists = new HashMap<>();
+        
+        // Create EvaluationRequestKMItem using constructor
+        EvaluationRequestKMItem evalRequest = new EvaluationRequestKMItem(
+            kmId,
+            evalDataItem,
+            allFactLists
+        );
         
         // For now, we'll attempt evaluation with minimal data
         // OpenCDS may require proper vMR format, so this might fail
