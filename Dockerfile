@@ -72,12 +72,9 @@ RUN echo "=== Downloading Jakarta XML Binding ===" && \
     https://repo1.maven.org/maven2/org/glassfish/jaxb/jaxb-runtime/4.0.2/jaxb-runtime-4.0.2.jar && \
     curl -L -f -o /tmp/jakarta.activation-api.jar \
     https://repo1.maven.org/maven2/jakarta/activation/jakarta.activation-api/2.1.2/jakarta.activation-api-2.1.2.jar && \
-    curl -L -f -o /tmp/jakarta.activation-impl.jar \
-    https://repo1.maven.org/maven2/org/eclipse/angus/jakarta.activation/2.0.0/jakarta.activation-2.0.0.jar && \
     cp /tmp/jakarta.xml.bind-api.jar /build/webapp/WEB-INF/lib/ && \
     cp /tmp/jakarta.xml.bind-runtime.jar /build/webapp/WEB-INF/lib/ && \
     cp /tmp/jakarta.activation-api.jar /build/webapp/WEB-INF/lib/ && \
-    cp /tmp/jakarta.activation-impl.jar /build/webapp/WEB-INF/lib/ && \
     echo "✅ Jakarta XML Binding added to WAR"
 
 # Copy OpenCDS configuration files to webapp
@@ -473,7 +470,7 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar:/tmp/jakarta.xml.bind-api.jar:/tmp/jakarta.xml.bind-runtime.jar:/tmp/jakarta.activation-api.jar:/tmp/jakarta.activation-impl.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/commons-logging.jar:/tmp/jakarta.xml.bind-api.jar:/tmp/jakarta.xml.bind-runtime.jar:/tmp/jakarta.activation-api.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
