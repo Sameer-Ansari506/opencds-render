@@ -17,7 +17,7 @@ RUN (find . -name "*.war" -type f -exec cp {} /build/opencds.war \; 2>/dev/null)
     echo "WARNING: No WAR file found in build output"
 
 # Runtime stage
-FROM tomcat:9-jre17-openjdk-slim
+FROM tomcat:9-jre17
 
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
