@@ -666,15 +666,8 @@ public class EvaluateServlet extends HttpServlet {
     }
     
     private String evaluateWithOpenCDS(String requestJson) throws Exception {
-        // Parse JSON request - JsonParser.parseString() requires Gson 2.8.6+, fallback to instance method
-        JsonObject request;
-        try {
-            // Try static method first (Gson 2.8.6+)
-            request = JsonParser.parseString(requestJson).getAsJsonObject();
-        } catch (NoSuchMethodError e) {
-            // Fallback to instance method for older Gson versions
-            request = new JsonParser().parse(requestJson).getAsJsonObject();
-        }
+        // Parse JSON request using JsonParser instance method (works in all Gson versions)
+        JsonObject request = new JsonParser().parse(requestJson).getAsJsonObject();
         JsonObject vmr = request.getAsJsonObject("vmr");
         JsonObject kmRequest = request.getAsJsonObject("kmEvaluationRequest");
         
