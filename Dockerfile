@@ -841,24 +841,24 @@ public class EvaluateServlet extends HttpServlet {
                                     JsonElement element = symptoms.get(i);
                                     if (element != null && element.isJsonObject()) {
                                         JsonObject symptom = element.getAsJsonObject();
-                                Problem problem = new Problem();
-                                problem.setId("problem-" + i);
-                                problem.setEvaluatedPersonId(patientId);
-                                problem.setSubjectIsFocalPerson(true);
-                                problem.setToBeReturned(true);
-                                
-                                org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
-                                if (symptom.has("code")) {
-                                    problemCode.setCode(symptom.get("code").getAsString());
-                                }
-                                if (symptom.has("displayName")) {
-                                    problemCode.setDisplayName(symptom.get("displayName").getAsString());
-                                }
-                                if (symptom.has("codeSystem")) {
-                                    problemCode.setCodeSystem(symptom.get("codeSystem").getAsString());
-                                }
-                                problem.setProblemCode(problemCode);
-                                problems.add(problem);
+                                        Problem problem = new Problem();
+                                        problem.setId("problem-" + i);
+                                        problem.setEvaluatedPersonId(patientId);
+                                        problem.setSubjectIsFocalPerson(true);
+                                        problem.setToBeReturned(true);
+                                        
+                                        org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
+                                        if (symptom.has("code")) {
+                                            problemCode.setCode(symptom.get("code").getAsString());
+                                        }
+                                        if (symptom.has("displayName")) {
+                                            problemCode.setDisplayName(symptom.get("displayName").getAsString());
+                                        }
+                                        if (symptom.has("codeSystem")) {
+                                            problemCode.setCodeSystem(symptom.get("codeSystem").getAsString());
+                                        }
+                                        problem.setProblemCode(problemCode);
+                                        problems.add(problem);
                                     }
                                 }
                             }
@@ -870,24 +870,24 @@ public class EvaluateServlet extends HttpServlet {
                                     JsonElement element = complaints.get(i);
                                     if (element != null && element.isJsonObject()) {
                                         JsonObject complaint = element.getAsJsonObject();
-                                Problem problem = new Problem();
-                                problem.setId("complaint-" + i);
-                                problem.setEvaluatedPersonId(patientId);
-                                problem.setSubjectIsFocalPerson(true);
-                                problem.setToBeReturned(true);
-                                
-                                org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
-                                if (complaint.has("code")) {
-                                    problemCode.setCode(complaint.get("code").getAsString());
-                                }
-                                if (complaint.has("displayName")) {
-                                    problemCode.setDisplayName(complaint.get("displayName").getAsString());
-                                }
-                                if (complaint.has("codeSystem")) {
-                                    problemCode.setCodeSystem(complaint.get("codeSystem").getAsString());
-                                }
-                                problem.setProblemCode(problemCode);
-                                problems.add(problem);
+                                        Problem problem = new Problem();
+                                        problem.setId("complaint-" + i);
+                                        problem.setEvaluatedPersonId(patientId);
+                                        problem.setSubjectIsFocalPerson(true);
+                                        problem.setToBeReturned(true);
+                                        
+                                        org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
+                                        if (complaint.has("code")) {
+                                            problemCode.setCode(complaint.get("code").getAsString());
+                                        }
+                                        if (complaint.has("displayName")) {
+                                            problemCode.setDisplayName(complaint.get("displayName").getAsString());
+                                        }
+                                        if (complaint.has("codeSystem")) {
+                                            problemCode.setCodeSystem(complaint.get("codeSystem").getAsString());
+                                        }
+                                        problem.setProblemCode(problemCode);
+                                        problems.add(problem);
                                     }
                                 }
                             }
