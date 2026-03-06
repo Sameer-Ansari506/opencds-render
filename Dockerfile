@@ -858,7 +858,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for uncomplicated UTI\");\n");
-        sb.append("        sub.setSubstanceCode(mc); ab.setAdministrableSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("        sub.setSubstanceCode(mc); ab.setSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Pain on Urination / Dysuria unspec (R30.9) -> UTI workup ---------\n");
         sb.append("rule \"Symptom_Dysuria_R309_WorkUp\"\n");
@@ -878,7 +878,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for uncomplicated UTI\");\n");
-        sb.append("        sub.setSubstanceCode(mc); ab.setAdministrableSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("        sub.setSubstanceCode(mc); ab.setSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Acute Cystitis (N30.0) ------------------------------------------\n");
         sb.append("rule \"Symptom_AcuteCystitis_WorkUp\"\n");
@@ -898,7 +898,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for acute cystitis\");\n");
-        sb.append("        sub.setSubstanceCode(mc); ab.setAdministrableSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("        sub.setSubstanceCode(mc); ab.setSubstance(sub); ab.setToBeReturned(true); insert(ab);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Type 2 Diabetes (E11.9) -----------------------------------------\n");
         sb.append("rule \"Symptom_Diabetes_T2_WorkUp\"\n");
@@ -1089,7 +1089,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"387107005\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Ferrous sulfate 325 mg PO daily - oral iron supplementation\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Gout (M10.9) ---------------------------------------------------\n");
         sb.append("rule \"Symptom_Gout_WorkUp\"\n");
@@ -1109,10 +1109,10 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"1256\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Colchicine 0.6 mg PO - acute gout attack treatment\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); AdministrableSubstance sub2 = new AdministrableSubstance(); CD mc2 = new CD();\n");
         sb.append("        mc2.setCode(\"519\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Allopurinol 100-300 mg PO daily - urate-lowering therapy (maintenance)\");\n");
-        sb.append("        sub2.setSubstanceCode(mc2); med2.setAdministrableSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("        sub2.setSubstanceCode(mc2); med2.setSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Allergic Rhinitis (J30.9) --------------------------------------\n");
         sb.append("rule \"Symptom_AllergicRhinitis_WorkUp\"\n");
@@ -1129,10 +1129,10 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"203457\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Fluticasone nasal spray 50 mcg - intranasal corticosteroid (first-line)\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); AdministrableSubstance sub2 = new AdministrableSubstance(); CD mc2 = new CD();\n");
         sb.append("        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO daily - non-sedating antihistamine\");\n");
-        sb.append("        sub2.setSubstanceCode(mc2); med2.setAdministrableSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("        sub2.setSubstanceCode(mc2); med2.setSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Acute Sinusitis (J32.9) ----------------------------------------\n");
         sb.append("rule \"Symptom_Sinusitis_WorkUp\"\n");
@@ -1149,7 +1149,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 500 mg PO TID x10d - bacterial sinusitis\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Acute Otitis Media (H66.90) ------------------------------------\n");
         sb.append("rule \"Symptom_OtitisMedia_WorkUp\"\n");
@@ -1166,7 +1166,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 80-90 mg/kg/day PO - first-line antibiotic for AOM\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Conjunctivitis (H10.9) -----------------------------------------\n");
         sb.append("rule \"Symptom_Conjunctivitis_WorkUp\"\n");
@@ -1183,7 +1183,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"392468\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Tobramycin 0.3% ophthalmic drops - bacterial conjunctivitis treatment\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: COPD (J44.1) ----------------------------------------------------\n");
         sb.append("rule \"Symptom_COPD_WorkUp\"\n");
@@ -1203,10 +1203,10 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Salbutamol MDI 90 mcg - SABA bronchodilator\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); AdministrableSubstance sub2 = new AdministrableSubstance(); CD mc2 = new CD();\n");
         sb.append("        mc2.setCode(\"41493\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Tiotropium 18 mcg inhaled daily - LAMA maintenance bronchodilator\");\n");
-        sb.append("        sub2.setSubstanceCode(mc2); med2.setAdministrableSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("        sub2.setSubstanceCode(mc2); med2.setSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Acute Bronchitis (J40) -----------------------------------------\n");
         sb.append("rule \"Symptom_AcuteBronchitis_WorkUp\"\n");
@@ -1223,7 +1223,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Albuterol MDI - bronchospasm relief if wheezing\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Hyperlipidaemia (E78.5) -----------------------------------------\n");
         sb.append("rule \"Symptom_Hyperlipidaemia_WorkUp\"\n");
@@ -1246,7 +1246,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"36567\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Atorvastatin 10-80 mg PO daily - high-intensity statin therapy\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Hyperthyroidism (E05.90) ----------------------------------------\n");
         sb.append("rule \"Symptom_Hyperthyroidism_WorkUp\"\n");
@@ -1266,7 +1266,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7052\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Methimazole 10-30 mg PO daily - antithyroid therapy (first-line)\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Hypothyroidism (E03.9) ------------------------------------------\n");
         sb.append("rule \"Symptom_Hypothyroidism_E039_WorkUp\"\n");
@@ -1286,7 +1286,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"10582\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levothyroxine 25-200 mcg PO daily - thyroid hormone replacement\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Appendicitis (K37) ----------------------------------------------\n");
         sb.append("rule \"Symptom_Appendicitis_WorkUp\"\n");
@@ -1326,7 +1326,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7646\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Omeprazole 20 mg PO BID - proton pump inhibitor therapy\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Irritable Bowel Syndrome (K58.9) --------------------------------\n");
         sb.append("rule \"Symptom_IBS_WorkUp\"\n");
@@ -1346,7 +1346,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"2200\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Dicycloverine 10-20 mg PO - antispasmodic for IBS cramps\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Obstructive Sleep Apnoea (G47.33) -------------------------------\n");
         sb.append("rule \"Symptom_SleepApnea_WorkUp\"\n");
@@ -1386,7 +1386,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"114194\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Apixaban 5 mg PO BID - anticoagulation for stroke prevention\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Heart Failure (I50.9) -------------------------------------------\n");
         sb.append("rule \"Symptom_HeartFailure_WorkUp\"\n");
@@ -1409,10 +1409,10 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"18867\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Furosemide 20-80 mg PO daily - loop diuretic for congestion\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); AdministrableSubstance sub2 = new AdministrableSubstance(); CD mc2 = new CD();\n");
         sb.append("        mc2.setCode(\"18991\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Lisinopril 2.5-40 mg PO daily - ACE inhibitor (HFrEF guideline-directed)\");\n");
-        sb.append("        sub2.setSubstanceCode(mc2); med2.setAdministrableSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("        sub2.setSubstanceCode(mc2); med2.setSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Osteoarthritis (M19.90) -----------------------------------------\n");
         sb.append("rule \"Symptom_Osteoarthritis_WorkUp\"\n");
@@ -1432,7 +1432,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Acetaminophen 500-1000 mg PO - first-line analgesic for OA\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Atopic Dermatitis / Eczema (L20.9) ------------------------------\n");
         sb.append("rule \"Symptom_AtopicDermatitis_WorkUp\"\n");
@@ -1449,10 +1449,10 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Hydrocortisone 1% topical cream - mild-potency corticosteroid\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); AdministrableSubstance sub2 = new AdministrableSubstance(); CD mc2 = new CD();\n");
         sb.append("        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO - antihistamine for itch\");\n");
-        sb.append("        sub2.setSubstanceCode(mc2); med2.setAdministrableSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("        sub2.setSubstanceCode(mc2); med2.setSubstance(sub2); med2.setToBeReturned(true); insert(med2);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Epilepsy / Seizure Disorder (G40.909) ---------------------------\n");
         sb.append("rule \"Symptom_Epilepsy_WorkUp\"\n");
@@ -1472,7 +1472,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"9997\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levetiracetam 500 mg PO BID - first-line antiseizure medication\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Nephrolithiasis / Kidney Stones (N20.0) ------------------------\n");
         sb.append("rule \"Symptom_KidneyStones_WorkUp\"\n");
@@ -1492,7 +1492,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ketorolac 15-30 mg IV/IM - pain management for renal colic\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Obesity (E66.9) -------------------------------------------------\n");
         sb.append("rule \"Symptom_Obesity_WorkUp\"\n");
@@ -1532,7 +1532,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"253182\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Insulin glargine (Lantus) - basal insulin for T1DM management\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         sb.append("// -- SYMPTOM: Psoriasis (L40.9) -----------------------------------------------\n");
         sb.append("rule \"Symptom_Psoriasis_WorkUp\"\n");
@@ -1552,7 +1552,7 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
         sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
         sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); AdministrableSubstance sub = new AdministrableSubstance(); CD mc = new CD();\n");
         sb.append("        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Betamethasone valerate 0.1% cream - moderate-potency topical steroid\");\n");
-        sb.append("        sub.setSubstanceCode(mc); med.setAdministrableSubstance(sub); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        sub.setSubstanceCode(mc); med.setSubstance(sub); med.setToBeReturned(true); insert(med);\n");
         sb.append("end\n");
         return sb.toString();
     }
