@@ -213,14 +213,14 @@ RUN echo "=== Creating minimal execution engine adapter ===" && \
         ' * This adapter simply returns the input as output without any rule evaluation.' \
         ' * It'\''s used when Drools adapters are not available.' \
         ' */' \
-        'public class PassThroughExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, String> {' \
+        'public class PassThroughExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, java.io.InputStream> {' \
         '    ' \
         '    @Override' \
         '    public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> execute(' \
-        '            String knowledgePackage,' \
+        '            java.io.InputStream knowledgePackage,' \
         '            ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> context) throws Exception {' \
         '        ' \
-        '        // Pass-through: return input as output' \
+        '        // Pass-through: return input as output (ignore knowledge package for now)' \
         '        Map<Class<?>, List<?>> input = context.getInput();' \
         '        return context.setResults(input);' \
         '    }' \
@@ -289,16 +289,17 @@ RUN echo "=== Creating minimal execution engine adapter ===" && \
         'import org.opencds.config.api.KnowledgeLoader;' \
         'import org.opencds.config.api.model.KnowledgeModule;' \
         'import java.util.function.Function;' \
+        'import java.io.InputStream;' \
         '' \
         '/**' \
         ' * Minimal knowledge loader implementation.' \
-        ' * Returns the knowledge package ID as a string (for DRL files, this would be the file path).' \
+        ' * Returns the InputStream as the knowledge package (pass-through).' \
         ' */' \
-        'public class PassThroughKnowledgeLoader implements KnowledgeLoader<String, String> {' \
+        'public class PassThroughKnowledgeLoader implements KnowledgeLoader<InputStream, InputStream> {' \
         '    ' \
         '    @Override' \
-        '    public String loadKnowledgePackage(KnowledgeModule knowledgeModule, Function<KnowledgeModule, String> inputFunction) {' \
-        '        // Return the package ID as the knowledge package' \
+        '    public InputStream loadKnowledgePackage(KnowledgeModule knowledgeModule, Function<KnowledgeModule, InputStream> inputFunction) {' \
+        '        // Return the InputStream as-is (pass-through)' \
         '        return inputFunction.apply(knowledgeModule);' \
         '    }' \
         '}' > /build/PassThroughKnowledgeLoader.java && \
