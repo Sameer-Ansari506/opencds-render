@@ -326,1229 +326,1236 @@ import java.nio.charset.StandardCharsets;
 public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, InputStream> {
     
     // Production-level clinical knowledge base (USPSTF Grade A/B + symptom-based CDS)
-    private static final String VEDA_DRL =
-        "package VedaBasic_v1_0_0\n" +
-        "import org.opencds.vmr.v1_0.internal.Demographics\n" +
-        "import org.opencds.vmr.v1_0.internal.Problem\n" +
-        "import org.opencds.vmr.v1_0.internal.ObservationProposal\n" +
-        "import org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal\n" +
-        "import org.opencds.vmr.v1_0.internal.ProcedureProposal\n" +
-        "import org.opencds.vmr.v1_0.internal.AdministrableSubstance\n" +
-        "import org.opencds.vmr.v1_0.internal.datatypes.CD\n" +
-        "import org.opencds.vmr.v1_0.internal.ClinicalStatement\n" +
-        "import org.opencds.vmr.v1_0.internal.EntityBase\n" +
-        "global java.util.Date evalTime\n" +
-        "global String clientLanguage\n" +
-        "global String clientTimeZoneOffset\n" +
-        "global String focalPersonId\n" +
-        "global java.util.Set assertions\n" +
-        "global java.util.Map namedObjects\n" +
-        "// ── PREVENTIVE CARE: Blood Pressure (USPSTF A – all adults 18+) ─────────────\n" +
-        "rule \"Preventive_BloodPressureScreening\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 18.0)\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Blood pressure systolic and diastolic\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "\n" +
-        "// ── PREVENTIVE CARE: Depression Screening (USPSTF B – adults 18+) ──────────\n" +
-        "rule \"Preventive_DepressionScreening\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 18.0)\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"73831-0\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"73831-0\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"PHQ-9 Depression Screening\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Lipid Panel Male 35+ (USPSTF A) ────────────────────────\n" +
-        "rule \"Preventive_LipidPanel_Male35\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 35.0, gender != null, gender.code == \"M\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Lipid Panel Female 45+ (USPSTF A) ───────────────────────\n" +
-        "rule \"Preventive_LipidPanel_Female45\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 45.0, gender != null, gender.code == \"F\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Colorectal Cancer Screening 45-75 (USPSTF A) ───────────\n" +
-        "rule \"Preventive_ColorectalCancer_45to75\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 45.0, age.value <= 75.0)\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"73761001\")\n" +
-        "    then\n" +
-        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"73761001\"); c.setCodeSystem(\"SNOMED-CT\"); c.setDisplayName(\"Colonoscopy (USPSTF A – colorectal cancer screening)\");\n" +
-        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Mammography Female 50-74 (USPSTF B) ────────────────────\n" +
-        "rule \"Preventive_Mammography_Female50to74\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 50.0, age.value <= 74.0, gender != null, gender.code == \"F\")\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24606-6\")\n" +
-        "    then\n" +
-        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"24606-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Mammography screening (USPSTF B)\");\n" +
-        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Cervical Cancer Pap Smear Female 21-65 (USPSTF A) ──────\n" +
-        "rule \"Preventive_CervicalCancer_Female21to65\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 21.0, age.value <= 65.0, gender != null, gender.code == \"F\")\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"19762-4\")\n" +
-        "    then\n" +
-        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"19762-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Pap smear – cervical cancer screening (USPSTF A)\");\n" +
-        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Diabetes / Prediabetes HbA1c 35-70 (USPSTF B) ─────────\n" +
-        "rule \"Preventive_DiabetesScreening_35to70\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 35.0, age.value <= 70.0)\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"17856-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Hemoglobin A1c – diabetes/prediabetes screening (USPSTF B)\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "// ── PREVENTIVE CARE: Osteoporosis DEXA Scan Female 65+ (USPSTF B) ───────────\n" +
-        "rule \"Preventive_Osteoporosis_Female65\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $d : Demographics(age != null, age.value >= 65.0, gender != null, gender.code == \"F\")\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"38269-7\")\n" +
-        "    then\n" +
-        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"38269-7\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"DEXA bone density scan – osteoporosis screening (USPSTF B)\");\n" +
-        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Fever (R50.9) ────────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Fever_CBC\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"58410-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +
-        "end\n" +
-        "rule \"Symptom_Fever_Diagnosis\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +
-        "        not Problem(problemCode != null, problemCode.code == \"B34.9\")\n" +
-        "    then\n" +
-        "        Problem dx = new Problem(); CD c = new CD();\n" +
-        "        c.setCode(\"B34.9\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Viral infection, unspecified\");\n" +
-        "        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Cough (R05) ──────────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Cough_ChestXRay\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R05\")\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n" +
-        "    then\n" +
-        "        ProcedureProposal pr = new ProcedureProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"24627-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Chest X-ray 2 views\");\n" +
-        "        pr.setProcedureCode(c); pr.setToBeReturned(true); insert(pr);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Fever + Cough → COVID-19 + Influenza panel ───────────────────────\n" +
-        "rule \"Symptom_FeverCough_RespiratoryPanel\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $fever : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +
-        "        $cough : Problem(problemCode != null, problemCode.code == \"R05\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"94500-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal covid = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"94500-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"SARS-CoV-2 (COVID-19) RNA – Respiratory NAA\");\n" +
-        "        covid.setObservationFocus(c1); covid.setToBeReturned(true); insert(covid);\n" +
-        "        ObservationProposal flu = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"24015-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Influenza A+B Ag – Nasopharynx\");\n" +
-        "        flu.setObservationFocus(c2); flu.setToBeReturned(true); insert(flu);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n" +
-        "        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n" +
-        "        mc.setCode(\"352111000\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Oseltamivir (Tamiflu) – antiviral therapy\");\n" +
-        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Headache (R51) ───────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Headache_Assessment\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R51\")\n" +
-        "        not Problem(problemCode != null, problemCode.code == \"G44.309\")\n" +
-        "    then\n" +
-        "        Problem dx = new Problem(); CD c = new CD();\n" +
-        "        c.setCode(\"G44.309\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Tension-type headache, unspecified\");\n" +
-        "        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n" +
-        "        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n" +
-        "        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400mg PO – analgesic\");\n" +
-        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Chest Pain (R07.9) ───────────────────────────────────────────────\n" +
-        "rule \"Symptom_ChestPain_CardiacWorkup\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R07.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal ecg = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n" +
-        "        ecg.setObservationFocus(c1); ecg.setToBeReturned(true); insert(ecg);\n" +
-        "        ObservationProposal trop = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"42757-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Troponin I Cardiac [Mass/Vol]\");\n" +
-        "        trop.setObservationFocus(c2); trop.setToBeReturned(true); insert(trop);\n" +
-        "        ObservationProposal bnp = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"42637-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"BNP [Mass/Vol] in Serum or Plasma\");\n" +
-        "        bnp.setObservationFocus(c3); bnp.setToBeReturned(true); insert(bnp);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Shortness of Breath (R06.00) ────────────────────────────────────\n" +
-        "rule \"Symptom_SOB_PulmonaryWorkup\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R06.00\")\n" +
-        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n" +
-        "    then\n" +
-        "        ProcedureProposal cxr = new ProcedureProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray 2 views\");\n" +
-        "        cxr.setProcedureCode(c1); cxr.setToBeReturned(true); insert(cxr);\n" +
-        "        ObservationProposal spo2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"59408-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n" +
-        "        spo2.setObservationFocus(c2); spo2.setToBeReturned(true); insert(spo2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Fatigue (R53.83) ─────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Fatigue_Workup\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R53.83\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11580-8\")\n" +
-        "    then\n" +
-        "        ObservationProposal tsh = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11580-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH [Units/Vol] – thyroid function\");\n" +
-        "        tsh.setObservationFocus(c1); tsh.setToBeReturned(true); insert(tsh);\n" +
-        "        ObservationProposal cbc = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        cbc.setObservationFocus(c2); cbc.setToBeReturned(true); insert(cbc);\n" +
-        "        ObservationProposal bmp = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel – Serum or Plasma\");\n" +
-        "        bmp.setObservationFocus(c3); bmp.setToBeReturned(true); insert(bmp);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Abdominal Pain (R10.9) ──────────────────────────────────────────\n" +
-        "rule \"Symptom_AbdominalPain_Workup\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R10.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"1960-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal lft = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"1960-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Aspartate aminotransferase [Enzymatic activity/volume]\");\n" +
-        "        lft.setObservationFocus(c1); lft.setToBeReturned(true); insert(lft);\n" +
-        "        ObservationProposal lip = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"1798-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Lipase [Enzymatic activity/volume] in Serum\");\n" +
-        "        lip.setObservationFocus(c2); lip.setToBeReturned(true); insert(lip);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Dizziness (R42) ──────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Dizziness_Assessment\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R42\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n" +
-        "    then\n" +
-        "        ObservationProposal bp = new ObservationProposal(); CD c = new CD();\n" +
-        "        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Orthostatic blood pressure check\");\n" +
-        "        bp.setObservationFocus(c); bp.setToBeReturned(true); insert(bp);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Sore Throat / Pharyngitis (J02.9) ─────────────────────────────\n" +
-        "rule \"Symptom_SoreThroat_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J02.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5036-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal s1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5036-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Streptococcus group A Ag – Throat rapid (Rapid Strep)\");\n" +
-        "        s1.setObservationFocus(c1); s1.setToBeReturned(true); insert(s1);\n" +
-        "        ObservationProposal s2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"626-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Throat culture – Bacteria identified\");\n" +
-        "        s2.setObservationFocus(c2); s2.setToBeReturned(true); insert(s2);\n" +
-        "        ObservationProposal s3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        s3.setObservationFocus(c3); s3.setToBeReturned(true); insert(s3);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin – antibiotic (if Strep-positive)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J02.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute pharyngitis, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Upper Respiratory Infection (J06.9) ────────────────────────────\n" +
-        "rule \"Symptom_URI_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J06.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"58410-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"30522-7\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"C-Reactive Protein [Mass/Vol] – inflammation marker\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J06.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute upper respiratory infection, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Pneumonia (J18.9) ───────────────────────────────────────────────\n" +
-        "rule \"Symptom_Pneumonia_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J18.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray 2 views\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"75241-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Procalcitonin [Mass/Vol] – bacterial infection marker\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"600-7\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Blood culture – Bacteria identified\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"18631\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Azithromycin (Z-Pack) – antibiotic for community-acquired pneumonia\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J18.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Pneumonia, unspecified organism\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Asthma (J45.909) ───────────────────────────────────────────────\n" +
-        "rule \"Symptom_Asthma_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J45.909\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"59408-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"59408-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"82607-6\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Spirometry (PFT) – FEV1/FVC ratio\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"24627-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Chest X-ray 2 views\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"435\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Albuterol (Salbutamol) inhaler – short-acting bronchodilator (SABA)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J45.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified asthma, uncomplicated\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Hypertension (I10) ──────────────────────────────────────────────\n" +
-        "rule \"Symptom_Hypertension_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"I10\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"51990-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Basic metabolic panel – Serum or Plasma\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"5767-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"2093-3\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"17767\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amlodipine 5mg – calcium channel blocker (first-line HTN)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"I10\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Essential (primary) hypertension\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Palpitations (R00.2) ────────────────────────────────────────────\n" +
-        "rule \"Symptom_Palpitations_CardiacWorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R00.2\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH [Units/Vol] – thyroid function\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n" +
-        "        pc.setCode(\"34552-0\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"Echocardiography – cardiac structure and function\");\n" +
-        "        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"R00.2\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Palpitations – cardiac arrhythmia workup\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Low Back Pain (M54.5) ───────────────────────────────────────────\n" +
-        "rule \"Symptom_LowBackPain_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"M54.5\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"36643-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"36643-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"X-ray lumbar spine AP and lateral\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400-600mg PO – NSAID analgesic for musculoskeletal pain\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"M54.5\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Low back pain\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Myalgia / Joint Pain (M79.3) ────────────────────────────────────\n" +
-        "rule \"Symptom_Myalgia_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"M79.3\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2157-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"2157-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Creatine kinase [Enzymatic activity/volume] – muscle damage marker\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"4537-7\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Erythrocyte sedimentation rate (ESR)\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"30522-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"C-Reactive Protein [Mass/Vol] – inflammation marker\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"58410-2\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"M79.3\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Myalgia – inflammatory or musculoskeletal origin\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Rheumatoid Arthritis (M05.9) ────────────────────────────────────\n" +
-        "rule \"Symptom_RheumatoidArthritis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"M05.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"31155-7\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"31155-7\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Rheumatoid factor [Units/vol] – RF test\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"33935-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Anti-cyclic citrullinated peptide Ab (Anti-CCP IgG)\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"4537-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Erythrocyte sedimentation rate (ESR)\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"30522-7\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"C-Reactive Protein [Mass/Vol] – inflammation marker\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n" +
-        "        pc.setCode(\"24643-9\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"X-ray hand bilateral – joint erosions/damage assessment\");\n" +
-        "        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"M05.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Rheumatoid arthritis with rheumatoid factor, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Urinary Tract Infection (N39.0) ─────────────────────────────────\n" +
-        "rule \"Symptom_UTI_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"N39.0\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"2160-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Creatinine [Mass/Vol] in Serum – renal function\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for uncomplicated UTI\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection, site not specified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Dysuria / Urinary Burning (R30.0) ──────────────────────────────\n" +
-        "rule \"Symptom_Dysuria_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R30.0\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – dysuria presentation\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Polyuria / Frequent Urination (R35) → UTI workup ───────────────\n" +
-        "rule \"Symptom_Polyuria_UTI_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R35\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – frequent urination presentation\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for uncomplicated UTI\");\n" +
-        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Pain on Urination / Dysuria unspec (R30.9) → UTI workup ─────────\n" +
-        "rule \"Symptom_Dysuria_R309_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R30.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – pain on urination\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for uncomplicated UTI\");\n" +
-        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Acute Cystitis (N30.0) ──────────────────────────────────────────\n" +
-        "rule \"Symptom_AcuteCystitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"N30.0\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N30.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute cystitis – bladder infection\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for acute cystitis\");\n" +
-        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Type 2 Diabetes (E11.9) ─────────────────────────────────────────\n" +
-        "rule \"Symptom_Diabetes_T2_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E11.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"17856-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Hemoglobin A1c – glycaemic control\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"2339-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Glucose [Mass/vol] – fasting plasma glucose\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel – Serum or Plasma\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"5767-9\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Urinalysis – microalbuminuria screen\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        ObservationProposal o5 = new ObservationProposal(); CD c5 = new CD();\n" +
-        "        c5.setCode(\"2093-3\"); c5.setCodeSystem(\"LOINC\"); c5.setDisplayName(\"Cholesterol – lipid panel for cardiovascular risk\");\n" +
-        "        o5.setObservationFocus(c5); o5.setToBeReturned(true); insert(o5);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"6809\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Metformin 500-1000mg PO – first-line oral hypoglycaemic (ADA/EASD)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E11.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Type 2 diabetes mellitus without complications\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Major Depression (F32.9) ────────────────────────────────────────\n" +
-        "rule \"Symptom_Depression_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"F32.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"73831-0\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"73831-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"PHQ-9 – Patient Health Questionnaire Depression Score\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH – rule out hypothyroidism as mood cause\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel – rule out anaemia as fatigue cause\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"32937\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Sertraline (Zoloft) 50mg – SSRI first-line antidepressant (APA guidelines)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"F32.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Major depressive disorder, single episode, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Generalised Anxiety (F41.1) ─────────────────────────────────────\n" +
-        "rule \"Symptom_Anxiety_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"F41.1\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"69737-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"69737-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"GAD-7 – Generalized Anxiety Disorder 7-item score\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH – rule out hyperthyroidism mimicking anxiety\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Escitalopram (Lexapro) 10mg – SSRI/SNRI first-line for GAD (APA)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"F41.1\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Generalised anxiety disorder\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Skin Rash / Urticaria (R21) ─────────────────────────────────────\n" +
-        "rule \"Symptom_Rash_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"R21\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"19113-0\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"19113-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"IgE [Units/vol] – total immunoglobulin E (allergy screen)\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – eosinophil count for allergic/parasitic cause\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"30522-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"C-Reactive Protein [Mass/Vol] – inflammation marker\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"3498\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Cetirizine (Zyrtec) 10mg – second-generation antihistamine\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"L50.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Allergic urticaria\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: GERD / Acid Reflux (K21.0) ─────────────────────────────────────\n" +
-        "rule \"Symptom_GERD_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"K21.0\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"13332-8\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"13332-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"H. pylori Ag – Helicobacter pylori antigen in stool\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"40790\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Omeprazole (Prilosec) 20mg PO – PPI first-line for GERD (ACG guidelines)\");\n" +
-        "        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n" +
-        "        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n" +
-        "        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n" +
-        "        pc.setCode(\"28026-5\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"Upper GI endoscopy – if refractory or alarm symptoms\");\n" +
-        "        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"K21.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Gastro-oesophageal reflux disease with oesophagitis\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Migraine (G43.909) ──────────────────────────────────────────────\n" +
-        "rule \"Symptom_Migraine_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"G43.909\")\n" +
-        "        not SubstanceAdministrationProposal(substance != null, substance.substanceCode != null, substance.substanceCode.code == \"372798006\")\n" +
-        "    then\n" +
-        "        SubstanceAdministrationProposal sa1 = new SubstanceAdministrationProposal(); CD mc1 = new CD();\n" +
-        "        mc1.setCode(\"372798006\"); mc1.setCodeSystem(\"SNOMED-CT\"); mc1.setDisplayName(\"Sumatriptan 50-100mg – triptan abortive therapy for acute migraine\");\n" +
-        "        AdministrableSubstance sub1 = new AdministrableSubstance(); sub1.setSubstanceCode(mc1);\n" +
-        "        sa1.setSubstance(sub1); sa1.setToBeReturned(true); insert(sa1);\n" +
-        "        SubstanceAdministrationProposal sa2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"55489\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Topiramate 25-100mg – preventive migraine therapy (AAN grade A)\");\n" +
-        "        AdministrableSubstance sub2 = new AdministrableSubstance(); sub2.setSubstanceCode(mc2);\n" +
-        "        sa2.setSubstance(sub2); sa2.setToBeReturned(true); insert(sa2);\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24590-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"MRI Brain – rule out secondary headache causes\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"G43.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Migraine, unspecified, not intractable, without status migrainosus\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Chronic Kidney Disease (N18.9) ──────────────────────────────────\n" +
-        "rule \"Symptom_CKD_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"N18.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2160-0\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"2160-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Creatinine [Mass/Vol] in Serum – renal function\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"33914-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"eGFR – estimated glomerular filtration rate\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel – electrolytes and renal function\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n" +
-        "        c4.setCode(\"5767-9\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Urinalysis with microscopy – proteinuria assessment\");\n" +
-        "        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n" +
-        "        ObservationProposal o5 = new ObservationProposal(); CD c5 = new CD();\n" +
-        "        c5.setCode(\"58410-2\"); c5.setCodeSystem(\"LOINC\"); c5.setDisplayName(\"CBC panel – anaemia of chronic kidney disease\");\n" +
-        "        o5.setObservationFocus(c5); o5.setToBeReturned(true); insert(o5);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N18.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Chronic kidney disease, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Iron Deficiency Anaemia (D50.9) ───────────────────────────────\n" +
-        "rule \"Symptom_IronDeficiencyAnaemia_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"D50.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2498-4\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"2498-4\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Serum ferritin – iron store assessment\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – haemoglobin and haematocrit\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"2500-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Iron [Mass/Vol] in Serum – total serum iron\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"D50.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Iron deficiency anaemia, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"387107005\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Ferrous sulfate 325 mg PO daily – oral iron supplementation\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Gout (M10.9) ───────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Gout_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"M10.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"3084-1\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"3084-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Uric acid [Mass/Vol] in Serum – hyperuricaemia assessment\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"2160-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Creatinine – renal function before urate-lowering therapy\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"M10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Gout, unspecified – crystal arthropathy\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"1256\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Colchicine 0.6 mg PO – acute gout attack treatment\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"519\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Allopurinol 100-300 mg PO daily – urate-lowering therapy (maintenance)\");\n" +
-        "        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Allergic Rhinitis (J30.9) ──────────────────────────────────────\n" +
-        "rule \"Symptom_AllergicRhinitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J30.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"6321-1\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"6321-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"IgE [Units/Vol] in Serum – total IgE allergy panel\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J30.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Allergic rhinitis, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"203457\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Fluticasone nasal spray 50 mcg – intranasal corticosteroid (first-line)\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO daily – non-sedating antihistamine\");\n" +
-        "        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Acute Sinusitis (J32.9) ────────────────────────────────────────\n" +
-        "rule \"Symptom_Sinusitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J32.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT sinuses without contrast – sinus anatomy assessment\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J32.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Chronic sinusitis, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 500 mg PO TID x10d – bacterial sinusitis\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Acute Otitis Media (H66.90) ────────────────────────────────────\n" +
-        "rule \"Symptom_OtitisMedia_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"H66.90\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11331-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11331-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Otoscopy – tympanic membrane assessment\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"H66.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Otitis media, unspecified ear\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 80-90 mg/kg/day PO – first-line antibiotic for AOM\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Conjunctivitis (H10.9) ─────────────────────────────────────────\n" +
-        "rule \"Symptom_Conjunctivitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"H10.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"12235-8\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"12235-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Eye culture – bacterial conjunctivitis identification\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"H10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified conjunctivitis\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"392468\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Tobramycin 0.3% ophthalmic drops – bacterial conjunctivitis treatment\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: COPD (J44.1) ────────────────────────────────────────────────────\n" +
-        "rule \"Symptom_COPD_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J44.1\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"19926-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"19926-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Spirometry – FEV1/FVC ratio for COPD diagnosis\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"24627-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Chest X-ray – hyperinflation, flattened diaphragm\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J44.1\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"COPD with acute exacerbation\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Salbutamol MDI 90 mcg – SABA bronchodilator\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"41493\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Tiotropium 18 mcg inhaled daily – LAMA maintenance bronchodilator\");\n" +
-        "        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Acute Bronchitis (J40) ─────────────────────────────────────────\n" +
-        "rule \"Symptom_AcuteBronchitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"J40\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray – rule out pneumonia in acute bronchitis\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"J40\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Bronchitis, not specified as acute or chronic\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Albuterol MDI – bronchospasm relief if wheezing\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Hyperlipidaemia (E78.5) ─────────────────────────────────────────\n" +
-        "rule \"Symptom_Hyperlipidaemia_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E78.5\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"2093-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Cholesterol [Mass/Vol] – fasting lipid profile\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"2571-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Triglycerides – fasting lipid panel\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"1742-6\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"ALT – liver function before statin initiation\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E78.5\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Hyperlipidaemia, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"36567\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Atorvastatin 10-80 mg PO daily – high-intensity statin therapy\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Hyperthyroidism (E05.90) ────────────────────────────────────────\n" +
-        "rule \"Symptom_Hyperthyroidism_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E05.90\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"3016-3\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"3016-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH – suppressed in hyperthyroidism\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"3053-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Free T4 – elevated in hyperthyroidism\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E05.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Thyrotoxicosis, unspecified without thyrotoxic crisis\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7052\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Methimazole 10-30 mg PO daily – antithyroid therapy (first-line)\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Hypothyroidism (E03.9) ──────────────────────────────────────────\n" +
-        "rule \"Symptom_Hypothyroidism_E039_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E03.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"3016-3\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"3016-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH – elevated in hypothyroidism\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"3053-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Free T4 – low in hypothyroidism\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E03.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Hypothyroidism, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"10582\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levothyroxine 25-200 mcg PO daily – thyroid hormone replacement\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Appendicitis (K37) ──────────────────────────────────────────────\n" +
-        "rule \"Symptom_Appendicitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"K37\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"24550-4\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24550-4\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT abdomen and pelvis with contrast – appendix evaluation\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC – leukocytosis in appendicitis\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"1988-5\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CRP – acute inflammatory marker\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"K37\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified appendicitis – urgent surgical evaluation required\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Peptic Ulcer Disease (K27.9) ────────────────────────────────────\n" +
-        "rule \"Symptom_PepticUlcer_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"K27.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"34792-1\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"34792-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"H. pylori Ag in stool – non-invasive H. pylori test\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC – anaemia from GI blood loss\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"K27.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Peptic ulcer, unspecified, without haemorrhage or perforation\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7646\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Omeprazole 20 mg PO BID – proton pump inhibitor therapy\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Irritable Bowel Syndrome (K58.9) ────────────────────────────────\n" +
-        "rule \"Symptom_IBS_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"K58.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"58410-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CBC – rule out infection or anaemia in IBS evaluation\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"1988-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CRP – exclude IBD (elevated in IBD, normal in IBS)\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"K58.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Irritable bowel syndrome without diarrhoea\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"2200\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Dicycloverine 10-20 mg PO – antispasmodic for IBS cramps\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Obstructive Sleep Apnoea (G47.33) ───────────────────────────────\n" +
-        "rule \"Symptom_SleepApnea_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"G47.33\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"29273-0\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"29273-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Epworth Sleepiness Scale – daytime sleepiness screening\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"60985-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Polysomnography – overnight sleep study (gold standard for OSA)\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"G47.33\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Obstructive sleep apnoea\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Atrial Fibrillation (I48.91) ────────────────────────────────────\n" +
-        "rule \"Symptom_AtrialFibrillation_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"I48.91\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"ECG 12-lead – atrial fibrillation confirmation\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"3016-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH – thyroid as precipitant of AF\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"34896-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Echocardiogram – cardiac structure in AF\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"I48.91\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified atrial fibrillation\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"114194\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Apixaban 5 mg PO BID – anticoagulation for stroke prevention\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Heart Failure (I50.9) ───────────────────────────────────────────\n" +
-        "rule \"Symptom_HeartFailure_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"I50.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"42637-9\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"42637-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"BNP [Mass/Vol] – brain natriuretic peptide for heart failure\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"24627-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Chest X-ray – cardiomegaly, pulmonary oedema\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"34896-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Echocardiogram – ejection fraction (HFrEF vs HFpEF)\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"I50.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Heart failure, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"18867\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Furosemide 20-80 mg PO daily – loop diuretic for congestion\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"18991\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Lisinopril 2.5-40 mg PO daily – ACE inhibitor (HFrEF guideline-directed)\");\n" +
-        "        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Osteoarthritis (M19.90) ─────────────────────────────────────────\n" +
-        "rule \"Symptom_Osteoarthritis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"M19.90\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"1988-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"1988-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CRP – differentiate OA from inflammatory arthritis\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"36643-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"X-ray joint bilateral – osteophytes, joint space narrowing\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"M19.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Primary osteoarthritis, unspecified site\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Acetaminophen 500-1000 mg PO – first-line analgesic for OA\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Atopic Dermatitis / Eczema (L20.9) ──────────────────────────────\n" +
-        "rule \"Symptom_AtopicDermatitis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"L20.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"6321-1\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"6321-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Total IgE – elevated in atopic disease\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"L20.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Atopic dermatitis, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Hydrocortisone 1% topical cream – mild-potency corticosteroid\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n" +
-        "        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO – antihistamine for itch\");\n" +
-        "        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Epilepsy / Seizure Disorder (G40.909) ───────────────────────────\n" +
-        "rule \"Symptom_Epilepsy_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"G40.909\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"24629-8\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"24629-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"EEG – electroencephalography for seizure diagnosis\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"24590-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"MRI brain – structural cause of seizure\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"G40.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Epilepsy, unspecified, not intractable\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"9997\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levetiracetam 500 mg PO BID – first-line antiseizure medication\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Nephrolithiasis / Kidney Stones (N20.0) ────────────────────────\n" +
-        "rule \"Symptom_KidneyStones_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"N20.0\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"35816-7\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"35816-7\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT KUB without contrast – kidney stone detection\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"5767-9\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Urinalysis – haematuria and crystalluria\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"N20.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Calculus of kidney\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ketorolac 15-30 mg IV/IM – pain management for renal colic\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Obesity (E66.9) ─────────────────────────────────────────────────\n" +
-        "rule \"Symptom_Obesity_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E66.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"39156-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"39156-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"BMI – body mass index calculation\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"17856-6\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"HbA1c – diabetes screening in obesity\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n" +
-        "        c3.setCode(\"2093-3\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Fasting lipid panel – cardiovascular risk in obesity\");\n" +
-        "        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E66.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Obesity, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Type 1 Diabetes Mellitus (E10.9) ────────────────────────────────\n" +
-        "rule \"Symptom_Diabetes_T1_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"E10.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"17856-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"HbA1c – glycaemic control in T1DM\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"40558-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"C-peptide – residual beta-cell function (low in T1DM)\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"E10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Type 1 diabetes mellitus without complications\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"253182\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Insulin glargine (Lantus) – basal insulin for T1DM management\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n" +
-        "// ── SYMPTOM: Psoriasis (L40.9) ───────────────────────────────────────────────\n" +
-        "rule \"Symptom_Psoriasis_WorkUp\"\n" +
-        "    dialect \"mvel\"\n" +
-        "    when\n" +
-        "        $p : Problem(problemCode != null, problemCode.code == \"L40.9\")\n" +
-        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"1988-5\")\n" +
-        "    then\n" +
-        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +
-        "        c1.setCode(\"1988-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CRP – systemic inflammation in psoriasis\");\n" +
-        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +
-        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +
-        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC – baseline before systemic therapy\");\n" +
-        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +
-        "        Problem dx = new Problem(); CD dxc = new CD();\n" +
-        "        dxc.setCode(\"L40.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Psoriasis, unspecified\");\n" +
-        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +
-        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +
-        "        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Betamethasone valerate 0.1% cream – moderate-potency topical steroid\");\n" +
-        "        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n" +
-        "end\n";
+    private static final String VEDA_DRL = buildDrl();
+
+    private static String buildDrl() {
+        // Build DRL at runtime to avoid javac 65535-byte constant pool limit
+        // (50-disease rule set is ~90KB, exceeding Java compile-time limit)
+        StringBuilder sb = new StringBuilder(131072);
+        sb.append("package VedaBasic_v1_0_0\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.Demographics\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.Problem\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.ObservationProposal\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.ProcedureProposal\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.AdministrableSubstance\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.datatypes.CD\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.ClinicalStatement\n");
+        sb.append("import org.opencds.vmr.v1_0.internal.EntityBase\n");
+        sb.append("global java.util.Date evalTime\n");
+        sb.append("global String clientLanguage\n");
+        sb.append("global String clientTimeZoneOffset\n");
+        sb.append("global String focalPersonId\n");
+        sb.append("global java.util.Set assertions\n");
+        sb.append("global java.util.Map namedObjects\n");
+        sb.append("// -- PREVENTIVE CARE: Blood Pressure (USPSTF A - all adults 18+) -------------\n");
+        sb.append("rule \"Preventive_BloodPressureScreening\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 18.0)\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Blood pressure systolic and diastolic\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("\n");
+        sb.append("// -- PREVENTIVE CARE: Depression Screening (USPSTF B - adults 18+) ----------\n");
+        sb.append("rule \"Preventive_DepressionScreening\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 18.0)\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"73831-0\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"73831-0\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"PHQ-9 Depression Screening\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Lipid Panel Male 35+ (USPSTF A) ------------------------\n");
+        sb.append("rule \"Preventive_LipidPanel_Male35\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 35.0, gender != null, gender.code == \"M\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Lipid Panel Female 45+ (USPSTF A) -----------------------\n");
+        sb.append("rule \"Preventive_LipidPanel_Female45\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 45.0, gender != null, gender.code == \"F\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Colorectal Cancer Screening 45-75 (USPSTF A) -----------\n");
+        sb.append("rule \"Preventive_ColorectalCancer_45to75\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 45.0, age.value <= 75.0)\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"73761001\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"73761001\"); c.setCodeSystem(\"SNOMED-CT\"); c.setDisplayName(\"Colonoscopy (USPSTF A - colorectal cancer screening)\");\n");
+        sb.append("        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Mammography Female 50-74 (USPSTF B) --------------------\n");
+        sb.append("rule \"Preventive_Mammography_Female50to74\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 50.0, age.value <= 74.0, gender != null, gender.code == \"F\")\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24606-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"24606-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Mammography screening (USPSTF B)\");\n");
+        sb.append("        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Cervical Cancer Pap Smear Female 21-65 (USPSTF A) ------\n");
+        sb.append("rule \"Preventive_CervicalCancer_Female21to65\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 21.0, age.value <= 65.0, gender != null, gender.code == \"F\")\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"19762-4\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"19762-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Pap smear - cervical cancer screening (USPSTF A)\");\n");
+        sb.append("        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Diabetes / Prediabetes HbA1c 35-70 (USPSTF B) ---------\n");
+        sb.append("rule \"Preventive_DiabetesScreening_35to70\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 35.0, age.value <= 70.0)\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"17856-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Hemoglobin A1c - diabetes/prediabetes screening (USPSTF B)\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("// -- PREVENTIVE CARE: Osteoporosis DEXA Scan Female 65+ (USPSTF B) -----------\n");
+        sb.append("rule \"Preventive_Osteoporosis_Female65\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $d : Demographics(age != null, age.value >= 65.0, gender != null, gender.code == \"F\")\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"38269-7\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"38269-7\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"DEXA bone density scan - osteoporosis screening (USPSTF B)\");\n");
+        sb.append("        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Fever (R50.9) ----------------------------------------------------\n");
+        sb.append("rule \"Symptom_Fever_CBC\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"58410-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n");
+        sb.append("end\n");
+        sb.append("rule \"Symptom_Fever_Diagnosis\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n");
+        sb.append("        not Problem(problemCode != null, problemCode.code == \"B34.9\")\n");
+        sb.append("    then\n");
+        sb.append("        Problem dx = new Problem(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"B34.9\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Viral infection, unspecified\");\n");
+        sb.append("        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Cough (R05) ------------------------------------------------------\n");
+        sb.append("rule \"Symptom_Cough_ChestXRay\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R05\")\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal pr = new ProcedureProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"24627-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Chest X-ray 2 views\");\n");
+        sb.append("        pr.setProcedureCode(c); pr.setToBeReturned(true); insert(pr);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Fever + Cough -> COVID-19 + Influenza panel -----------------------\n");
+        sb.append("rule \"Symptom_FeverCough_RespiratoryPanel\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $fever : Problem(problemCode != null, problemCode.code == \"R50.9\")\n");
+        sb.append("        $cough : Problem(problemCode != null, problemCode.code == \"R05\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"94500-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal covid = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"94500-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"SARS-CoV-2 (COVID-19) RNA - Respiratory NAA\");\n");
+        sb.append("        covid.setObservationFocus(c1); covid.setToBeReturned(true); insert(covid);\n");
+        sb.append("        ObservationProposal flu = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"24015-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Influenza A+B Ag - Nasopharynx\");\n");
+        sb.append("        flu.setObservationFocus(c2); flu.setToBeReturned(true); insert(flu);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n");
+        sb.append("        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"352111000\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Oseltamivir (Tamiflu) - antiviral therapy\");\n");
+        sb.append("        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Headache (R51) ---------------------------------------------------\n");
+        sb.append("rule \"Symptom_Headache_Assessment\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R51\")\n");
+        sb.append("        not Problem(problemCode != null, problemCode.code == \"G44.309\")\n");
+        sb.append("    then\n");
+        sb.append("        Problem dx = new Problem(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"G44.309\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Tension-type headache, unspecified\");\n");
+        sb.append("        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n");
+        sb.append("        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400mg PO - analgesic\");\n");
+        sb.append("        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Chest Pain (R07.9) -----------------------------------------------\n");
+        sb.append("rule \"Symptom_ChestPain_CardiacWorkup\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R07.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal ecg = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n");
+        sb.append("        ecg.setObservationFocus(c1); ecg.setToBeReturned(true); insert(ecg);\n");
+        sb.append("        ObservationProposal trop = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"42757-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Troponin I Cardiac [Mass/Vol]\");\n");
+        sb.append("        trop.setObservationFocus(c2); trop.setToBeReturned(true); insert(trop);\n");
+        sb.append("        ObservationProposal bnp = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"42637-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"BNP [Mass/Vol] in Serum or Plasma\");\n");
+        sb.append("        bnp.setObservationFocus(c3); bnp.setToBeReturned(true); insert(bnp);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Shortness of Breath (R06.00) ------------------------------------\n");
+        sb.append("rule \"Symptom_SOB_PulmonaryWorkup\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R06.00\")\n");
+        sb.append("        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ProcedureProposal cxr = new ProcedureProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray 2 views\");\n");
+        sb.append("        cxr.setProcedureCode(c1); cxr.setToBeReturned(true); insert(cxr);\n");
+        sb.append("        ObservationProposal spo2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"59408-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n");
+        sb.append("        spo2.setObservationFocus(c2); spo2.setToBeReturned(true); insert(spo2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Fatigue (R53.83) -------------------------------------------------\n");
+        sb.append("rule \"Symptom_Fatigue_Workup\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R53.83\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11580-8\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal tsh = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11580-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH [Units/Vol] - thyroid function\");\n");
+        sb.append("        tsh.setObservationFocus(c1); tsh.setToBeReturned(true); insert(tsh);\n");
+        sb.append("        ObservationProposal cbc = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        cbc.setObservationFocus(c2); cbc.setToBeReturned(true); insert(cbc);\n");
+        sb.append("        ObservationProposal bmp = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel - Serum or Plasma\");\n");
+        sb.append("        bmp.setObservationFocus(c3); bmp.setToBeReturned(true); insert(bmp);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Abdominal Pain (R10.9) ------------------------------------------\n");
+        sb.append("rule \"Symptom_AbdominalPain_Workup\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R10.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"1960-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal lft = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"1960-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Aspartate aminotransferase [Enzymatic activity/volume]\");\n");
+        sb.append("        lft.setObservationFocus(c1); lft.setToBeReturned(true); insert(lft);\n");
+        sb.append("        ObservationProposal lip = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"1798-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Lipase [Enzymatic activity/volume] in Serum\");\n");
+        sb.append("        lip.setObservationFocus(c2); lip.setToBeReturned(true); insert(lip);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Dizziness (R42) --------------------------------------------------\n");
+        sb.append("rule \"Symptom_Dizziness_Assessment\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R42\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal bp = new ObservationProposal(); CD c = new CD();\n");
+        sb.append("        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Orthostatic blood pressure check\");\n");
+        sb.append("        bp.setObservationFocus(c); bp.setToBeReturned(true); insert(bp);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Sore Throat / Pharyngitis (J02.9) -----------------------------\n");
+        sb.append("rule \"Symptom_SoreThroat_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J02.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5036-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal s1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5036-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Streptococcus group A Ag - Throat rapid (Rapid Strep)\");\n");
+        sb.append("        s1.setObservationFocus(c1); s1.setToBeReturned(true); insert(s1);\n");
+        sb.append("        ObservationProposal s2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"626-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Throat culture - Bacteria identified\");\n");
+        sb.append("        s2.setObservationFocus(c2); s2.setToBeReturned(true); insert(s2);\n");
+        sb.append("        ObservationProposal s3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        s3.setObservationFocus(c3); s3.setToBeReturned(true); insert(s3);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin - antibiotic (if Strep-positive)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J02.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute pharyngitis, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Upper Respiratory Infection (J06.9) ----------------------------\n");
+        sb.append("rule \"Symptom_URI_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J06.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"58410-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"30522-7\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"C-Reactive Protein [Mass/Vol] - inflammation marker\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J06.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute upper respiratory infection, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Pneumonia (J18.9) -----------------------------------------------\n");
+        sb.append("rule \"Symptom_Pneumonia_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J18.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray 2 views\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"75241-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Procalcitonin [Mass/Vol] - bacterial infection marker\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"600-7\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Blood culture - Bacteria identified\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"18631\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Azithromycin (Z-Pack) - antibiotic for community-acquired pneumonia\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J18.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Pneumonia, unspecified organism\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Asthma (J45.909) -----------------------------------------------\n");
+        sb.append("rule \"Symptom_Asthma_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J45.909\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"59408-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"59408-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"82607-6\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Spirometry (PFT) - FEV1/FVC ratio\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"24627-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Chest X-ray 2 views\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"435\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Albuterol (Salbutamol) inhaler - short-acting bronchodilator (SABA)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J45.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified asthma, uncomplicated\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Hypertension (I10) ----------------------------------------------\n");
+        sb.append("rule \"Symptom_Hypertension_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"I10\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"51990-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Basic metabolic panel - Serum or Plasma\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"5767-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"2093-3\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"17767\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amlodipine 5mg - calcium channel blocker (first-line HTN)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"I10\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Essential (primary) hypertension\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Palpitations (R00.2) --------------------------------------------\n");
+        sb.append("rule \"Symptom_Palpitations_CardiacWorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R00.2\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH [Units/Vol] - thyroid function\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n");
+        sb.append("        pc.setCode(\"34552-0\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"Echocardiography - cardiac structure and function\");\n");
+        sb.append("        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"R00.2\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Palpitations - cardiac arrhythmia workup\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Low Back Pain (M54.5) -------------------------------------------\n");
+        sb.append("rule \"Symptom_LowBackPain_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"M54.5\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"36643-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"36643-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"X-ray lumbar spine AP and lateral\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400-600mg PO - NSAID analgesic for musculoskeletal pain\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"M54.5\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Low back pain\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Myalgia / Joint Pain (M79.3) ------------------------------------\n");
+        sb.append("rule \"Symptom_Myalgia_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"M79.3\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2157-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"2157-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Creatine kinase [Enzymatic activity/volume] - muscle damage marker\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"4537-7\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Erythrocyte sedimentation rate (ESR)\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"30522-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"C-Reactive Protein [Mass/Vol] - inflammation marker\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"58410-2\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"CBC panel - Blood by Automated count\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"M79.3\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Myalgia - inflammatory or musculoskeletal origin\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Rheumatoid Arthritis (M05.9) ------------------------------------\n");
+        sb.append("rule \"Symptom_RheumatoidArthritis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"M05.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"31155-7\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"31155-7\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Rheumatoid factor [Units/vol] - RF test\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"33935-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Anti-cyclic citrullinated peptide Ab (Anti-CCP IgG)\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"4537-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Erythrocyte sedimentation rate (ESR)\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"30522-7\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"C-Reactive Protein [Mass/Vol] - inflammation marker\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n");
+        sb.append("        pc.setCode(\"24643-9\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"X-ray hand bilateral - joint erosions/damage assessment\");\n");
+        sb.append("        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"M05.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Rheumatoid arthritis with rheumatoid factor, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Urinary Tract Infection (N39.0) ---------------------------------\n");
+        sb.append("rule \"Symptom_UTI_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"N39.0\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"2160-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Creatinine [Mass/Vol] in Serum - renal function\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for uncomplicated UTI\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection, site not specified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Dysuria / Urinary Burning (R30.0) ------------------------------\n");
+        sb.append("rule \"Symptom_Dysuria_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R30.0\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection - dysuria presentation\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Polyuria / Frequent Urination (R35) -> UTI workup ---------------\n");
+        sb.append("rule \"Symptom_Polyuria_UTI_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R35\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection - frequent urination presentation\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for uncomplicated UTI\");\n");
+        sb.append("        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Pain on Urination / Dysuria unspec (R30.9) -> UTI workup ---------\n");
+        sb.append("rule \"Symptom_Dysuria_R309_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R30.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection - pain on urination\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for uncomplicated UTI\");\n");
+        sb.append("        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Acute Cystitis (N30.0) ------------------------------------------\n");
+        sb.append("rule \"Symptom_AcuteCystitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"N30.0\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis - dipstick panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N30.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute cystitis - bladder infection\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) - first-line antibiotic for acute cystitis\");\n");
+        sb.append("        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Type 2 Diabetes (E11.9) -----------------------------------------\n");
+        sb.append("rule \"Symptom_Diabetes_T2_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E11.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"17856-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Hemoglobin A1c - glycaemic control\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"2339-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Glucose [Mass/vol] - fasting plasma glucose\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel - Serum or Plasma\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"5767-9\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Urinalysis - microalbuminuria screen\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        ObservationProposal o5 = new ObservationProposal(); CD c5 = new CD();\n");
+        sb.append("        c5.setCode(\"2093-3\"); c5.setCodeSystem(\"LOINC\"); c5.setDisplayName(\"Cholesterol - lipid panel for cardiovascular risk\");\n");
+        sb.append("        o5.setObservationFocus(c5); o5.setToBeReturned(true); insert(o5);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"6809\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Metformin 500-1000mg PO - first-line oral hypoglycaemic (ADA/EASD)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E11.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Type 2 diabetes mellitus without complications\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Major Depression (F32.9) ----------------------------------------\n");
+        sb.append("rule \"Symptom_Depression_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"F32.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"73831-0\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"73831-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"PHQ-9 - Patient Health Questionnaire Depression Score\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH - rule out hypothyroidism as mood cause\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"58410-2\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CBC panel - rule out anaemia as fatigue cause\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"32937\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Sertraline (Zoloft) 50mg - SSRI first-line antidepressant (APA guidelines)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"F32.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Major depressive disorder, single episode, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Generalised Anxiety (F41.1) -------------------------------------\n");
+        sb.append("rule \"Symptom_Anxiety_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"F41.1\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"69737-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"69737-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"GAD-7 - Generalized Anxiety Disorder 7-item score\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"11580-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH - rule out hyperthyroidism mimicking anxiety\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Escitalopram (Lexapro) 10mg - SSRI/SNRI first-line for GAD (APA)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"F41.1\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Generalised anxiety disorder\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Skin Rash / Urticaria (R21) -------------------------------------\n");
+        sb.append("rule \"Symptom_Rash_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"R21\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"19113-0\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"19113-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"IgE [Units/vol] - total immunoglobulin E (allergy screen)\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel - eosinophil count for allergic/parasitic cause\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"30522-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"C-Reactive Protein [Mass/Vol] - inflammation marker\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"3498\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Cetirizine (Zyrtec) 10mg - second-generation antihistamine\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"L50.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Allergic urticaria\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: GERD / Acid Reflux (K21.0) -------------------------------------\n");
+        sb.append("rule \"Symptom_GERD_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"K21.0\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"13332-8\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"13332-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"H. pylori Ag - Helicobacter pylori antigen in stool\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        SubstanceAdministrationProposal sa = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"40790\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Omeprazole (Prilosec) 20mg PO - PPI first-line for GERD (ACG guidelines)\");\n");
+        sb.append("        AdministrableSubstance sub = new AdministrableSubstance(); sub.setSubstanceCode(mc);\n");
+        sb.append("        sa.setSubstance(sub); sa.setToBeReturned(true); insert(sa);\n");
+        sb.append("        ProcedureProposal pr = new ProcedureProposal(); CD pc = new CD();\n");
+        sb.append("        pc.setCode(\"28026-5\"); pc.setCodeSystem(\"LOINC\"); pc.setDisplayName(\"Upper GI endoscopy - if refractory or alarm symptoms\");\n");
+        sb.append("        pr.setProcedureCode(pc); pr.setToBeReturned(true); insert(pr);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"K21.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Gastro-oesophageal reflux disease with oesophagitis\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Migraine (G43.909) ----------------------------------------------\n");
+        sb.append("rule \"Symptom_Migraine_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"G43.909\")\n");
+        sb.append("        not SubstanceAdministrationProposal(substance != null, substance.substanceCode != null, substance.substanceCode.code == \"372798006\")\n");
+        sb.append("    then\n");
+        sb.append("        SubstanceAdministrationProposal sa1 = new SubstanceAdministrationProposal(); CD mc1 = new CD();\n");
+        sb.append("        mc1.setCode(\"372798006\"); mc1.setCodeSystem(\"SNOMED-CT\"); mc1.setDisplayName(\"Sumatriptan 50-100mg - triptan abortive therapy for acute migraine\");\n");
+        sb.append("        AdministrableSubstance sub1 = new AdministrableSubstance(); sub1.setSubstanceCode(mc1);\n");
+        sb.append("        sa1.setSubstance(sub1); sa1.setToBeReturned(true); insert(sa1);\n");
+        sb.append("        SubstanceAdministrationProposal sa2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"55489\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Topiramate 25-100mg - preventive migraine therapy (AAN grade A)\");\n");
+        sb.append("        AdministrableSubstance sub2 = new AdministrableSubstance(); sub2.setSubstanceCode(mc2);\n");
+        sb.append("        sa2.setSubstance(sub2); sa2.setToBeReturned(true); insert(sa2);\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24590-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"MRI Brain - rule out secondary headache causes\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"G43.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Migraine, unspecified, not intractable, without status migrainosus\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Chronic Kidney Disease (N18.9) ----------------------------------\n");
+        sb.append("rule \"Symptom_CKD_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"N18.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2160-0\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"2160-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Creatinine [Mass/Vol] in Serum - renal function\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"33914-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"eGFR - estimated glomerular filtration rate\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel - electrolytes and renal function\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        ObservationProposal o4 = new ObservationProposal(); CD c4 = new CD();\n");
+        sb.append("        c4.setCode(\"5767-9\"); c4.setCodeSystem(\"LOINC\"); c4.setDisplayName(\"Urinalysis with microscopy - proteinuria assessment\");\n");
+        sb.append("        o4.setObservationFocus(c4); o4.setToBeReturned(true); insert(o4);\n");
+        sb.append("        ObservationProposal o5 = new ObservationProposal(); CD c5 = new CD();\n");
+        sb.append("        c5.setCode(\"58410-2\"); c5.setCodeSystem(\"LOINC\"); c5.setDisplayName(\"CBC panel - anaemia of chronic kidney disease\");\n");
+        sb.append("        o5.setObservationFocus(c5); o5.setToBeReturned(true); insert(o5);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N18.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Chronic kidney disease, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Iron Deficiency Anaemia (D50.9) -------------------------------\n");
+        sb.append("rule \"Symptom_IronDeficiencyAnaemia_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"D50.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2498-4\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"2498-4\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Serum ferritin - iron store assessment\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel - haemoglobin and haematocrit\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"2500-7\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Iron [Mass/Vol] in Serum - total serum iron\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"D50.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Iron deficiency anaemia, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"387107005\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Ferrous sulfate 325 mg PO daily - oral iron supplementation\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Gout (M10.9) ---------------------------------------------------\n");
+        sb.append("rule \"Symptom_Gout_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"M10.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"3084-1\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"3084-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Uric acid [Mass/Vol] in Serum - hyperuricaemia assessment\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"2160-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Creatinine - renal function before urate-lowering therapy\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"M10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Gout, unspecified - crystal arthropathy\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"1256\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Colchicine 0.6 mg PO - acute gout attack treatment\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"519\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Allopurinol 100-300 mg PO daily - urate-lowering therapy (maintenance)\");\n");
+        sb.append("        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Allergic Rhinitis (J30.9) --------------------------------------\n");
+        sb.append("rule \"Symptom_AllergicRhinitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J30.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"6321-1\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"6321-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"IgE [Units/Vol] in Serum - total IgE allergy panel\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J30.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Allergic rhinitis, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"203457\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Fluticasone nasal spray 50 mcg - intranasal corticosteroid (first-line)\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO daily - non-sedating antihistamine\");\n");
+        sb.append("        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Acute Sinusitis (J32.9) ----------------------------------------\n");
+        sb.append("rule \"Symptom_Sinusitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J32.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT sinuses without contrast - sinus anatomy assessment\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J32.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Chronic sinusitis, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 500 mg PO TID x10d - bacterial sinusitis\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Acute Otitis Media (H66.90) ------------------------------------\n");
+        sb.append("rule \"Symptom_OtitisMedia_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"H66.90\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11331-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11331-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Otoscopy - tympanic membrane assessment\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"H66.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Otitis media, unspecified ear\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"723\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Amoxicillin 80-90 mg/kg/day PO - first-line antibiotic for AOM\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Conjunctivitis (H10.9) -----------------------------------------\n");
+        sb.append("rule \"Symptom_Conjunctivitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"H10.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"12235-8\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"12235-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Eye culture - bacterial conjunctivitis identification\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"H10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified conjunctivitis\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"392468\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Tobramycin 0.3% ophthalmic drops - bacterial conjunctivitis treatment\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: COPD (J44.1) ----------------------------------------------------\n");
+        sb.append("rule \"Symptom_COPD_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J44.1\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"19926-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"19926-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Spirometry - FEV1/FVC ratio for COPD diagnosis\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"24627-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Chest X-ray - hyperinflation, flattened diaphragm\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J44.1\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"COPD with acute exacerbation\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Salbutamol MDI 90 mcg - SABA bronchodilator\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"41493\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Tiotropium 18 mcg inhaled daily - LAMA maintenance bronchodilator\");\n");
+        sb.append("        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Acute Bronchitis (J40) -----------------------------------------\n");
+        sb.append("rule \"Symptom_AcuteBronchitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"J40\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"24627-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray - rule out pneumonia in acute bronchitis\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"J40\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Bronchitis, not specified as acute or chronic\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"2108\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Albuterol MDI - bronchospasm relief if wheezing\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Hyperlipidaemia (E78.5) -----------------------------------------\n");
+        sb.append("rule \"Symptom_Hyperlipidaemia_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E78.5\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"2093-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Cholesterol [Mass/Vol] - fasting lipid profile\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"2571-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Triglycerides - fasting lipid panel\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"1742-6\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"ALT - liver function before statin initiation\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E78.5\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Hyperlipidaemia, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"36567\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Atorvastatin 10-80 mg PO daily - high-intensity statin therapy\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Hyperthyroidism (E05.90) ----------------------------------------\n");
+        sb.append("rule \"Symptom_Hyperthyroidism_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E05.90\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"3016-3\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"3016-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH - suppressed in hyperthyroidism\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"3053-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Free T4 - elevated in hyperthyroidism\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E05.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Thyrotoxicosis, unspecified without thyrotoxic crisis\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7052\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Methimazole 10-30 mg PO daily - antithyroid therapy (first-line)\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Hypothyroidism (E03.9) ------------------------------------------\n");
+        sb.append("rule \"Symptom_Hypothyroidism_E039_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E03.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"3016-3\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"3016-3\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH - elevated in hypothyroidism\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"3053-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Free T4 - low in hypothyroidism\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E03.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Hypothyroidism, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"10582\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levothyroxine 25-200 mcg PO daily - thyroid hormone replacement\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Appendicitis (K37) ----------------------------------------------\n");
+        sb.append("rule \"Symptom_Appendicitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"K37\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"24550-4\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24550-4\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT abdomen and pelvis with contrast - appendix evaluation\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC - leukocytosis in appendicitis\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"1988-5\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"CRP - acute inflammatory marker\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"K37\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified appendicitis - urgent surgical evaluation required\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Peptic Ulcer Disease (K27.9) ------------------------------------\n");
+        sb.append("rule \"Symptom_PepticUlcer_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"K27.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"34792-1\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"34792-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"H. pylori Ag in stool - non-invasive H. pylori test\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC - anaemia from GI blood loss\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"K27.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Peptic ulcer, unspecified, without haemorrhage or perforation\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7646\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Omeprazole 20 mg PO BID - proton pump inhibitor therapy\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Irritable Bowel Syndrome (K58.9) --------------------------------\n");
+        sb.append("rule \"Symptom_IBS_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"K58.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"58410-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CBC - rule out infection or anaemia in IBS evaluation\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"1988-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CRP - exclude IBD (elevated in IBD, normal in IBS)\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"K58.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Irritable bowel syndrome without diarrhoea\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"2200\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Dicycloverine 10-20 mg PO - antispasmodic for IBS cramps\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Obstructive Sleep Apnoea (G47.33) -------------------------------\n");
+        sb.append("rule \"Symptom_SleepApnea_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"G47.33\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"29273-0\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"29273-0\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Epworth Sleepiness Scale - daytime sleepiness screening\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"60985-8\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Polysomnography - overnight sleep study (gold standard for OSA)\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"G47.33\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Obstructive sleep apnoea\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Atrial Fibrillation (I48.91) ------------------------------------\n");
+        sb.append("rule \"Symptom_AtrialFibrillation_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"I48.91\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"ECG 12-lead - atrial fibrillation confirmation\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"3016-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"TSH - thyroid as precipitant of AF\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"34896-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Echocardiogram - cardiac structure in AF\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"I48.91\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Unspecified atrial fibrillation\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"114194\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Apixaban 5 mg PO BID - anticoagulation for stroke prevention\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Heart Failure (I50.9) -------------------------------------------\n");
+        sb.append("rule \"Symptom_HeartFailure_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"I50.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"42637-9\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"42637-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"BNP [Mass/Vol] - brain natriuretic peptide for heart failure\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"24627-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Chest X-ray - cardiomegaly, pulmonary oedema\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"34896-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Echocardiogram - ejection fraction (HFrEF vs HFpEF)\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"I50.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Heart failure, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"18867\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Furosemide 20-80 mg PO daily - loop diuretic for congestion\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"18991\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Lisinopril 2.5-40 mg PO daily - ACE inhibitor (HFrEF guideline-directed)\");\n");
+        sb.append("        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Osteoarthritis (M19.90) -----------------------------------------\n");
+        sb.append("rule \"Symptom_Osteoarthritis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"M19.90\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"1988-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"1988-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CRP - differentiate OA from inflammatory arthritis\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"36643-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"X-ray joint bilateral - osteophytes, joint space narrowing\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"M19.90\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Primary osteoarthritis, unspecified site\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Acetaminophen 500-1000 mg PO - first-line analgesic for OA\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Atopic Dermatitis / Eczema (L20.9) ------------------------------\n");
+        sb.append("rule \"Symptom_AtopicDermatitis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"L20.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"6321-1\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"6321-1\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Total IgE - elevated in atopic disease\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"L20.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Atopic dermatitis, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Hydrocortisone 1% topical cream - mild-potency corticosteroid\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("        SubstanceAdministrationProposal med2 = new SubstanceAdministrationProposal(); CD mc2 = new CD();\n");
+        sb.append("        mc2.setCode(\"17434\"); mc2.setCodeSystem(\"RxNorm\"); mc2.setDisplayName(\"Cetirizine 10 mg PO - antihistamine for itch\");\n");
+        sb.append("        med2.setAdministrableSubstance(mc2); med2.setToBeReturned(true); insert(med2);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Epilepsy / Seizure Disorder (G40.909) ---------------------------\n");
+        sb.append("rule \"Symptom_Epilepsy_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"G40.909\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"24629-8\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"24629-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"EEG - electroencephalography for seizure diagnosis\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"24590-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"MRI brain - structural cause of seizure\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"G40.909\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Epilepsy, unspecified, not intractable\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"9997\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Levetiracetam 500 mg PO BID - first-line antiseizure medication\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Nephrolithiasis / Kidney Stones (N20.0) ------------------------\n");
+        sb.append("rule \"Symptom_KidneyStones_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"N20.0\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"35816-7\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"35816-7\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CT KUB without contrast - kidney stone detection\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"5767-9\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Urinalysis - haematuria and crystalluria\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"N20.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Calculus of kidney\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"41493\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ketorolac 15-30 mg IV/IM - pain management for renal colic\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Obesity (E66.9) -------------------------------------------------\n");
+        sb.append("rule \"Symptom_Obesity_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E66.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"39156-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"39156-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"BMI - body mass index calculation\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"17856-6\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"HbA1c - diabetes screening in obesity\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        ObservationProposal o3 = new ObservationProposal(); CD c3 = new CD();\n");
+        sb.append("        c3.setCode(\"2093-3\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Fasting lipid panel - cardiovascular risk in obesity\");\n");
+        sb.append("        o3.setObservationFocus(c3); o3.setToBeReturned(true); insert(o3);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E66.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Obesity, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Type 1 Diabetes Mellitus (E10.9) --------------------------------\n");
+        sb.append("rule \"Symptom_Diabetes_T1_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"E10.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"17856-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"HbA1c - glycaemic control in T1DM\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"40558-3\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"C-peptide - residual beta-cell function (low in T1DM)\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"E10.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Type 1 diabetes mellitus without complications\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"253182\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Insulin glargine (Lantus) - basal insulin for T1DM management\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        sb.append("// -- SYMPTOM: Psoriasis (L40.9) -----------------------------------------------\n");
+        sb.append("rule \"Symptom_Psoriasis_WorkUp\"\n");
+        sb.append("    dialect \"mvel\"\n");
+        sb.append("    when\n");
+        sb.append("        $p : Problem(problemCode != null, problemCode.code == \"L40.9\")\n");
+        sb.append("        not ObservationProposal(observationFocus != null, observationFocus.code == \"1988-5\")\n");
+        sb.append("    then\n");
+        sb.append("        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n");
+        sb.append("        c1.setCode(\"1988-5\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"CRP - systemic inflammation in psoriasis\");\n");
+        sb.append("        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n");
+        sb.append("        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n");
+        sb.append("        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC - baseline before systemic therapy\");\n");
+        sb.append("        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n");
+        sb.append("        Problem dx = new Problem(); CD dxc = new CD();\n");
+        sb.append("        dxc.setCode(\"L40.9\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Psoriasis, unspecified\");\n");
+        sb.append("        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n");
+        sb.append("        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal(); CD mc = new CD();\n");
+        sb.append("        mc.setCode(\"7980\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Betamethasone valerate 0.1% cream - moderate-potency topical steroid\");\n");
+        sb.append("        med.setAdministrableSubstance(mc); med.setToBeReturned(true); insert(med);\n");
+        sb.append("end\n");
+        return sb.toString();
+    }
     
     @Override
     public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> execute(
