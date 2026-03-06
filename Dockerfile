@@ -216,6 +216,8 @@ RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
         'global String clientLanguage' \
         'global String clientTimeZoneOffset' \
         'global String focalPersonId' \
+        'global java.util.Set assertions' \
+        'global java.util.Map namedObjects' \
         '' \
         '// Minimal rule: return all clinical statements and entities' \
         'rule "ReturnAllClinicalStatements"' \
@@ -257,8 +259,8 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         'import java.util.HashMap;' \
         'import java.util.ArrayList;' \
         'import java.io.InputStream;' \
-        'import java.io.InputStreamReader;' \
-        'import java.io.BufferedReader;' \
+        'import java.io.ByteArrayInputStream;' \
+        'import java.io.ByteArrayOutputStream;' \
         '' \
         '/**' \
         ' * Real Drools execution engine adapter that evaluates DRL rules.' \
@@ -274,8 +276,18 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        Map<Class<?>, List<?>> input = context.getInput();' \
         '        ' \
         '        // Build Drools KnowledgeBase from DRL InputStream' \
+        '        // Copy the InputStream into an in-memory byte[] so we are not affected by external stream closing' \
+        '        ByteArrayOutputStream baos = new ByteArrayOutputStream();' \
+        '        byte[] buffer = new byte[8192];' \
+        '        int len;' \
+        '        while ((len = knowledgePackage.read(buffer)) != -1) {' \
+        '            baos.write(buffer, 0, len);' \
+        '        }' \
+        '        knowledgePackage.close();' \
+        '        ByteArrayInputStream drlStream = new ByteArrayInputStream(baos.toByteArray());' \
+        '        ' \
         '        KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();' \
-        '        kbuilder.add(ResourceFactory.newInputStreamResource(knowledgePackage), ResourceType.DRL);' \
+        '        kbuilder.add(ResourceFactory.newInputStreamResource(drlStream), ResourceType.DRL);' \
         '        ' \
         '        if (kbuilder.hasErrors()) {' \
         '            throw new RuntimeException("DRL compilation errors: " + kbuilder.getErrors().toString());' \
