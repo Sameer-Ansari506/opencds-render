@@ -625,12 +625,17 @@ public class EvaluateServlet extends HttpServlet {
             
             if (resultFactLists != null) {
                 // Extract Problems (diagnoses)
+                // Try both simple name and fully qualified name
                 List<?> problems = resultFactLists.get("Problem");
+                if (problems == null) {
+                    problems = resultFactLists.get("org.opencds.vmr.v1_0.internal.Problem");
+                }
                 if (problems != null) {
                     for (Object obj : problems) {
-                        if (obj instanceof org.opencds.vmr.v1_0.internal.Problem) {
-                            org.opencds.vmr.v1_0.internal.Problem problem = (org.opencds.vmr.v1_0.internal.Problem) obj;
-                            if (problem.getToBeReturned()) {
+                        try {
+                            if (obj instanceof org.opencds.vmr.v1_0.internal.Problem) {
+                                org.opencds.vmr.v1_0.internal.Problem problem = (org.opencds.vmr.v1_0.internal.Problem) obj;
+                                if (problem.getToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "diagnosis");
                                 
@@ -649,18 +654,25 @@ public class EvaluateServlet extends HttpServlet {
                                 proposal.addProperty("confidence", 75); // Default confidence
                                 proposal.addProperty("evidenceGrade", "B"); // Default grade
                                 proposals.add(proposal);
+                                }
                             }
+                        } catch (Exception e) {
+                            getServletContext().log("Error processing Problem: " + e.getMessage());
                         }
                     }
                 }
                 
                 // Extract ObservationProposal (lab orders)
                 List<?> observationProposals = resultFactLists.get("ObservationProposal");
+                if (observationProposals == null) {
+                    observationProposals = resultFactLists.get("org.opencds.vmr.v1_0.internal.ObservationProposal");
+                }
                 if (observationProposals != null) {
                     for (Object obj : observationProposals) {
-                        if (obj instanceof org.opencds.vmr.v1_0.internal.ObservationProposal) {
-                            org.opencds.vmr.v1_0.internal.ObservationProposal obs = (org.opencds.vmr.v1_0.internal.ObservationProposal) obj;
-                            if (obs.getToBeReturned()) {
+                        try {
+                            if (obj instanceof org.opencds.vmr.v1_0.internal.ObservationProposal) {
+                                org.opencds.vmr.v1_0.internal.ObservationProposal obs = (org.opencds.vmr.v1_0.internal.ObservationProposal) obj;
+                                if (obs.getToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "lab_order");
                                 
@@ -678,18 +690,25 @@ public class EvaluateServlet extends HttpServlet {
                                 
                                 proposal.addProperty("urgency", "routine"); // Default urgency
                                 proposals.add(proposal);
+                                }
                             }
+                        } catch (Exception e) {
+                            getServletContext().log("Error processing ObservationProposal: " + e.getMessage());
                         }
                     }
                 }
                 
                 // Extract SubstanceAdministrationProposal (treatments/medications)
                 List<?> substanceProposals = resultFactLists.get("SubstanceAdministrationProposal");
+                if (substanceProposals == null) {
+                    substanceProposals = resultFactLists.get("org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal");
+                }
                 if (substanceProposals != null) {
                     for (Object obj : substanceProposals) {
-                        if (obj instanceof org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) {
-                            org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal sub = (org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) obj;
-                            if (sub.getToBeReturned()) {
+                        try {
+                            if (obj instanceof org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) {
+                                org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal sub = (org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) obj;
+                                if (sub.getToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "treatment");
                                 
@@ -708,18 +727,25 @@ public class EvaluateServlet extends HttpServlet {
                                 
                                 proposal.addProperty("treatmentType", "medication");
                                 proposals.add(proposal);
+                                }
                             }
+                        } catch (Exception e) {
+                            getServletContext().log("Error processing SubstanceAdministrationProposal: " + e.getMessage());
                         }
                     }
                 }
                 
                 // Extract ProcedureProposal (procedures)
                 List<?> procedureProposals = resultFactLists.get("ProcedureProposal");
+                if (procedureProposals == null) {
+                    procedureProposals = resultFactLists.get("org.opencds.vmr.v1_0.internal.ProcedureProposal");
+                }
                 if (procedureProposals != null) {
                     for (Object obj : procedureProposals) {
-                        if (obj instanceof org.opencds.vmr.v1_0.internal.ProcedureProposal) {
-                            org.opencds.vmr.v1_0.internal.ProcedureProposal proc = (org.opencds.vmr.v1_0.internal.ProcedureProposal) obj;
-                            if (proc.getToBeReturned()) {
+                        try {
+                            if (obj instanceof org.opencds.vmr.v1_0.internal.ProcedureProposal) {
+                                org.opencds.vmr.v1_0.internal.ProcedureProposal proc = (org.opencds.vmr.v1_0.internal.ProcedureProposal) obj;
+                                if (proc.getToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "procedure");
                                 
@@ -736,7 +762,10 @@ public class EvaluateServlet extends HttpServlet {
                                 }
                                 
                                 proposals.add(proposal);
+                                }
                             }
+                        } catch (Exception e) {
+                            getServletContext().log("Error processing ProcedureProposal: " + e.getMessage());
                         }
                     }
                 }
