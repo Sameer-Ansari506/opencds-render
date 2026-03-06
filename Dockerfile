@@ -103,6 +103,30 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
     cp /tmp/commons-logging.jar /build/webapp/WEB-INF/lib/commons-logging.jar && \
     echo "✅ Apache Commons Logging added to WAR"
 
+# Download Drools 5.5 dependencies (required for real rule evaluation)
+RUN echo "=== Downloading Drools 5.5 dependencies ===" && \
+    # Drools Core
+    curl -L -f -o /tmp/drools-core.jar \
+    https://repo1.maven.org/maven2/org/drools/drools-core/5.5.0.Final/drools-core-5.5.0.Final.jar && \
+    cp /tmp/drools-core.jar /build/webapp/WEB-INF/lib/drools-core.jar && \
+    # Drools Compiler
+    curl -L -f -o /tmp/drools-compiler.jar \
+    https://repo1.maven.org/maven2/org/drools/drools-compiler/5.5.0.Final/drools-compiler-5.5.0.Final.jar && \
+    cp /tmp/drools-compiler.jar /build/webapp/WEB-INF/lib/drools-compiler.jar && \
+    # Knowledge API
+    curl -L -f -o /tmp/knowledge-api.jar \
+    https://repo1.maven.org/maven2/org/drools/knowledge-api/5.5.0.Final/knowledge-api-5.5.0.Final.jar && \
+    cp /tmp/knowledge-api.jar /build/webapp/WEB-INF/lib/knowledge-api.jar && \
+    # MVEL (required by Drools)
+    curl -L -f -o /tmp/mvel2.jar \
+    https://repo1.maven.org/maven2/org/mvel/mvel2/2.1.3.Final/mvel2-2.1.3.Final.jar && \
+    cp /tmp/mvel2.jar /build/webapp/WEB-INF/lib/mvel2.jar && \
+    # Antlr Runtime (required by Drools compiler)
+    curl -L -f -o /tmp/antlr-runtime.jar \
+    https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.3/antlr-runtime-3.3.jar && \
+    cp /tmp/antlr-runtime.jar /build/webapp/WEB-INF/lib/antlr-runtime.jar && \
+    echo "✅ Drools 5.5 dependencies added to WAR"
+
 # Note: JAXB and all other dependencies are now automatically copied via Maven dependency plugin above
 # No need to manually download them
 
@@ -132,8 +156,8 @@ RUN echo "=== Creating execution engines configuration ===" && \
         '<?xml version="1.0" encoding="UTF-8"?>' \
         '<ns2:executionEngines xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns2="org.opencds.config.rest.v2">' \
         '    <executionEngine>' \
-        '        <identifier>org.opencds.service.veda.PassThroughAdapter</identifier>' \
-        '        <adapter>org.opencds.service.veda.PassThroughExecutionEngineAdapter</adapter>' \
+        '        <identifier>org.opencds.service.veda.DroolsAdapter</identifier>' \
+        '        <adapter>org.opencds.service.veda.DroolsExecutionEngineAdapter</adapter>' \
         '        <context>org.opencds.service.veda.PassThroughExecutionEngineContext</context>' \
         '        <knowledgeLoader>org.opencds.service.veda.PassThroughKnowledgeLoader</knowledgeLoader>' \
         '        <description>Veda pass-through execution engine adapter (minimal implementation)</description>' \
@@ -153,7 +177,7 @@ RUN echo "=== Creating knowledge modules configuration ===" && \
         '    <knowledgeModule>' \
         '        <identifier scopingEntityId="org.opencds" businessId="veda-basic" version="1.0.0" />' \
         '        <status>APPROVED</status>' \
-        '        <executionEngine>org.opencds.service.veda.PassThroughAdapter</executionEngine>' \
+        '        <executionEngine>org.opencds.service.veda.DroolsAdapter</executionEngine>' \
         '        <semanticSignifierId scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />' \
         '        <package>' \
         '            <packageType>DRL</packageType>' \
@@ -197,8 +221,121 @@ RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
         'end' > /build/webapp/WEB-INF/classes/resources/knowledgePackages/org.opencds^veda-basic^1.0.0.drl && \
     echo "✅ Knowledge package (DRL file) created"
 
-# Create minimal execution engine adapter (pass-through implementation)
-RUN echo "=== Creating minimal execution engine adapter ===" && \
+# Create real Drools execution engine adapter
+RUN echo "=== Creating real Drools execution engine adapter ===" && \
+    printf '%s\n' \
+        'package org.opencds.service.veda;' \
+        '' \
+        'import org.drools.KnowledgeBase;' \
+        'import org.drools.KnowledgeBaseFactory;' \
+        'import org.drools.builder.KnowledgeBuilder;' \
+        'import org.drools.builder.KnowledgeBuilderFactory;' \
+        'import org.drools.builder.ResourceType;' \
+        'import org.drools.io.ResourceFactory;' \
+        'import org.drools.runtime.StatefulKnowledgeSession;' \
+        'import org.drools.runtime.rule.FactHandle;' \
+        'import org.opencds.config.api.ExecutionEngineAdapter;' \
+        'import org.opencds.config.api.ExecutionEngineContext;' \
+        'import org.opencds.config.api.EvaluationContext;' \
+        'import org.opencds.service.veda.PassThroughExecutionEngineContext;' \
+        'import java.util.Map;' \
+        'import java.util.List;' \
+        'import java.util.HashMap;' \
+        'import java.util.ArrayList;' \
+        'import java.io.InputStream;' \
+        'import java.io.InputStreamReader;' \
+        'import java.io.BufferedReader;' \
+        '' \
+        '/**' \
+        ' * Real Drools execution engine adapter that evaluates DRL rules.' \
+        ' */' \
+        'public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, InputStream> {' \
+        '    ' \
+        '    @Override' \
+        '    public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> execute(' \
+        '            InputStream knowledgePackage,' \
+        '            ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> context) throws Exception {' \
+        '        ' \
+        '        // Get input fact lists' \
+        '        Map<Class<?>, List<?>> input = context.getInput();' \
+        '        ' \
+        '        // Build Drools KnowledgeBase from DRL InputStream' \
+        '        KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();' \
+        '        kbuilder.add(ResourceFactory.newInputStreamResource(knowledgePackage), ResourceType.DRL);' \
+        '        ' \
+        '        if (kbuilder.hasErrors()) {' \
+        '            throw new RuntimeException("DRL compilation errors: " + kbuilder.getErrors().toString());' \
+        '        }' \
+        '        ' \
+        '        KnowledgeBase kbase = KnowledgeBaseFactory.newKnowledgeBase();' \
+        '        kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());' \
+        '        ' \
+        '        // Create session and insert facts' \
+        '        StatefulKnowledgeSession ksession = kbase.newStatefulKnowledgeSession();' \
+        '        ' \
+        '        // Set globals from EvaluationContext if available' \
+        '        EvaluationContext evalContext = null;' \
+        '        if (context instanceof PassThroughExecutionEngineContext) {' \
+        '            evalContext = ((PassThroughExecutionEngineContext) context).getEvaluationContext();' \
+        '        }' \
+        '        ' \
+        '        if (evalContext != null) {' \
+        '            ksession.setGlobal("evalTime", evalContext.getEvalTime());' \
+        '            ksession.setGlobal("clientLanguage", evalContext.getClientLanguage());' \
+        '            ksession.setGlobal("clientTimeZoneOffset", evalContext.getClientTimeZoneOffset());' \
+        '            ksession.setGlobal("focalPersonId", evalContext.getFocalPersonId());' \
+        '            ksession.setGlobal("assertions", evalContext.getAssertions());' \
+        '            ksession.setGlobal("namedObjects", evalContext.getNamedObjects());' \
+        '        } else {' \
+        '            // Fallback to defaults' \
+        '            ksession.setGlobal("evalTime", new java.util.Date());' \
+        '            ksession.setGlobal("clientLanguage", "en-US");' \
+        '            ksession.setGlobal("clientTimeZoneOffset", "+00:00");' \
+        '            ksession.setGlobal("focalPersonId", "patient-1");' \
+        '            ksession.setGlobal("assertions", new java.util.HashSet<String>());' \
+        '            ksession.setGlobal("namedObjects", new java.util.HashMap<String, Object>());' \
+        '        }' \
+        '        ' \
+        '        // Insert all facts from input' \
+        '        Map<Class<?>, List<FactHandle>> factHandles = new HashMap<>();' \
+        '        for (Map.Entry<Class<?>, List<?>> entry : input.entrySet()) {' \
+        '            if (entry.getValue() != null) {' \
+        '                List<FactHandle> handles = new ArrayList<>();' \
+        '                for (Object fact : entry.getValue()) {' \
+        '                    if (fact != null) {' \
+        '                        handles.add(ksession.insert(fact));' \
+        '                    }' \
+        '                }' \
+        '                factHandles.put(entry.getKey(), handles);' \
+        '            }' \
+        '        }' \
+        '        ' \
+        '        // Fire all rules' \
+        '        ksession.fireAllRules();' \
+        '        ' \
+        '        // Collect results - all facts that are still in working memory' \
+        '        Map<Class<?>, List<?>> results = new HashMap<>();' \
+        '        for (Map.Entry<Class<?>, List<?>> entry : input.entrySet()) {' \
+        '            List<Object> resultList = new ArrayList<>();' \
+        '            if (entry.getValue() != null) {' \
+        '                for (Object fact : entry.getValue()) {' \
+        '                    if (fact != null) {' \
+        '                        resultList.add(fact);' \
+        '                    }' \
+        '                }' \
+        '            }' \
+        '            if (!resultList.isEmpty()) {' \
+        '                results.put(entry.getKey(), resultList);' \
+        '            }' \
+        '        }' \
+        '        ' \
+        '        ksession.dispose();' \
+        '        ' \
+        '        return context.setResults(results);' \
+        '    }' \
+        '}' > /build/DroolsExecutionEngineAdapter.java && \
+    echo "✅ Drools execution engine adapter created" && \
+    echo "=== Creating minimal execution engine adapter (fallback) ===" && \
     printf '%s\n' \
         'package org.opencds.service.veda;' \
         '' \
@@ -282,6 +419,10 @@ RUN echo "=== Creating minimal execution engine adapter ===" && \
         '        this.evaluationContext = evaluationContext;' \
         '        return this;' \
         '    }' \
+        '    ' \
+        '    public EvaluationContext getEvaluationContext() {' \
+        '        return evaluationContext;' \
+        '    }' \
         '}' > /build/PassThroughExecutionEngineContext.java && \
     printf '%s\n' \
         'package org.opencds.service.veda;' \
@@ -335,6 +476,11 @@ import org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal;
 import org.opencds.vmr.v1_0.internal.ProcedureProposal;
 import org.opencds.vmr.v1_0.internal.AdministrableSubstance;
 import org.opencds.vmr.v1_0.internal.datatypes.CD;
+import org.opencds.vmr.v1_0.internal.EvaluatedPerson;
+import org.opencds.vmr.v1_0.internal.EvalTime;
+import org.opencds.vmr.v1_0.internal.FocalPersonId;
+import org.opencds.vmr.v1_0.internal.Demographics;
+import org.opencds.vmr.v1_0.internal.EvaluatedPersonAgeAtEvalTime;
 
 @WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
@@ -565,14 +711,20 @@ public class EvaluateServlet extends HttpServlet {
         evalDataItem.setExternalFactModelSSId("org.opencds.vmr^VMR^1.0");
         evalDataItem.setInteractionId("evaluate-" + System.currentTimeMillis());
         
-        // Create allFactLists - this is where the vMR data goes
-        // For now, create an empty map (minimal test)
-        // TODO: Convert JSON vMR to OpenCDS internal vMR format (CDSInput)
-        // This requires:
-        // 1. Parse JSON vMR structure
-        // 2. Convert to OpenCDS vMR Java objects (CDSInput)
-        // 3. Build fact lists from CDSInput
-        Map<Class<?>, List<?>> allFactLists = new HashMap<>();
+        // Convert JSON vMR to OpenCDS internal vMR format
+        Map<Class<?>, List<?>> allFactLists = convertJsonToVmrFactLists(vmr, evalDataItem);
+        
+        // Set focal person ID in evalDataItem
+        if (vmr != null) {
+            JsonObject patient = vmr.getAsJsonObject("patient");
+            if (patient != null) {
+                String patientId = "patient-1"; // Default
+                if (patient.has("id")) {
+                    patientId = patient.get("id").getAsString();
+                }
+                evalDataItem.setFocalPersonId(patientId);
+            }
+        }
         
         // Create EvaluationRequestKMItem using constructor
         EvaluationRequestKMItem evalRequest = new EvaluationRequestKMItem(
@@ -607,6 +759,130 @@ public class EvaluateServlet extends HttpServlet {
             error.addProperty("details", "Check server logs for full stack trace");
             return gson.toJson(error);
         }
+    }
+    
+    private Map<Class<?>, List<?>> convertJsonToVmrFactLists(JsonObject vmr, EvaluationRequestDataItem evalDataItem) {
+        Map<Class<?>, List<?>> allFactLists = new HashMap<>();
+        
+        try {
+            // Create EvalTime
+            EvalTime evalTime = new EvalTime();
+            evalTime.setEvalTimeValue(evalDataItem.getEvalTime());
+            List<EvalTime> evalTimeList = new ArrayList<>();
+            evalTimeList.add(evalTime);
+            allFactLists.put(EvalTime.class, evalTimeList);
+            
+            if (vmr != null) {
+                JsonObject patient = vmr.getAsJsonObject("patient");
+                if (patient != null) {
+                    // Create FocalPersonId
+                    String patientId = "patient-1";
+                    if (patient.has("id")) {
+                        patientId = patient.get("id").getAsString();
+                    }
+                    FocalPersonId focalPersonId = new FocalPersonId(patientId);
+                    List<FocalPersonId> focalPersonIdList = new ArrayList<>();
+                    focalPersonIdList.add(focalPersonId);
+                    allFactLists.put(FocalPersonId.class, focalPersonIdList);
+                    
+                    // Create EvaluatedPerson with demographics
+                    EvaluatedPerson evaluatedPerson = new EvaluatedPerson();
+                    evaluatedPerson.setId(patientId);
+                    evaluatedPerson.setFocalPerson(true);
+                    evaluatedPerson.setToBeReturned(true);
+                    
+                    // Create Demographics
+                    Demographics demographics = new Demographics();
+                    JsonObject demographicsJson = patient.getAsJsonObject("demographics");
+                    if (demographicsJson != null) {
+                        if (demographicsJson.has("age")) {
+                            int age = demographicsJson.get("age").getAsInt();
+                            // Set age in demographics
+                            org.opencds.vmr.v1_0.internal.datatypes.PQ agePQ = new org.opencds.vmr.v1_0.internal.datatypes.PQ();
+                            agePQ.setValue(String.valueOf(age));
+                            agePQ.setUnit("a"); // years
+                            demographics.setAge(agePQ);
+                        }
+                        if (demographicsJson.has("gender")) {
+                            String gender = demographicsJson.get("gender").getAsString();
+                            org.opencds.vmr.v1_0.internal.datatypes.CD genderCD = new org.opencds.vmr.v1_0.internal.datatypes.CD();
+                            genderCD.setCode(gender);
+                            demographics.setGender(genderCD);
+                        }
+                    }
+                    evaluatedPerson.setDemographics(demographics);
+                    
+                    List<EvaluatedPerson> evaluatedPersonList = new ArrayList<>();
+                    evaluatedPersonList.add(evaluatedPerson);
+                    allFactLists.put(EvaluatedPerson.class, evaluatedPersonList);
+                    
+                    // Create Problems from symptoms/complaints if present
+                    if (patient.has("symptoms") || patient.has("complaints")) {
+                        List<Problem> problems = new ArrayList<>();
+                        if (patient.has("symptoms")) {
+                            JsonArray symptoms = patient.getAsJsonArray("symptoms");
+                            for (int i = 0; i < symptoms.size(); i++) {
+                                JsonObject symptom = symptoms.get(i).getAsJsonObject();
+                                Problem problem = new Problem();
+                                problem.setId("problem-" + i);
+                                problem.setEvaluatedPersonId(patientId);
+                                problem.setSubjectIsFocalPerson(true);
+                                problem.setToBeReturned(true);
+                                
+                                org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
+                                if (symptom.has("code")) {
+                                    problemCode.setCode(symptom.get("code").getAsString());
+                                }
+                                if (symptom.has("displayName")) {
+                                    problemCode.setDisplayName(symptom.get("displayName").getAsString());
+                                }
+                                if (symptom.has("codeSystem")) {
+                                    problemCode.setCodeSystem(symptom.get("codeSystem").getAsString());
+                                }
+                                problem.setProblemCode(problemCode);
+                                problems.add(problem);
+                            }
+                        }
+                        if (patient.has("complaints")) {
+                            JsonArray complaints = patient.getAsJsonArray("complaints");
+                            for (int i = 0; i < complaints.size(); i++) {
+                                JsonObject complaint = complaints.get(i).getAsJsonObject();
+                                Problem problem = new Problem();
+                                problem.setId("complaint-" + i);
+                                problem.setEvaluatedPersonId(patientId);
+                                problem.setSubjectIsFocalPerson(true);
+                                problem.setToBeReturned(true);
+                                
+                                org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = new org.opencds.vmr.v1_0.internal.datatypes.CD();
+                                if (complaint.has("code")) {
+                                    problemCode.setCode(complaint.get("code").getAsString());
+                                }
+                                if (complaint.has("displayName")) {
+                                    problemCode.setDisplayName(complaint.get("displayName").getAsString());
+                                }
+                                if (complaint.has("codeSystem")) {
+                                    problemCode.setCodeSystem(complaint.get("codeSystem").getAsString());
+                                }
+                                problem.setProblemCode(problemCode);
+                                problems.add(problem);
+                            }
+                        }
+                        if (!problems.isEmpty()) {
+                            allFactLists.put(Problem.class, problems);
+                        }
+                    }
+                }
+            }
+            
+            getServletContext().log("Converted JSON to vMR fact lists: " + allFactLists.keySet().size() + " fact list types");
+            
+        } catch (Exception e) {
+            getServletContext().log("Error converting JSON to vMR: " + e.getMessage(), e);
+            e.printStackTrace();
+            // Return empty fact lists if conversion fails
+        }
+        
+        return allFactLists;
     }
     
     private String convertResponseToJson(EvaluationResponseKMItem evalResponse, String originalRequest) {
