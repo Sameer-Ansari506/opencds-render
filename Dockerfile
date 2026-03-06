@@ -306,8 +306,6 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         'import java.util.ArrayList;' \
         'import java.util.Collection;' \
         'import java.io.InputStream;' \
-        'import java.io.ByteArrayInputStream;' \
-        'import java.io.ByteArrayOutputStream;' \
         '' \
         '/**' \
         ' * Real Drools execution engine adapter that evaluates DRL rules.' \
@@ -322,19 +320,16 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        // Get input fact lists' \
         '        Map<Class<?>, List<?>> input = context.getInput();' \
         '        ' \
-        '        // Build Drools KnowledgeBase from DRL InputStream' \
-        '        // Copy the InputStream into an in-memory byte[] so we are not affected by external stream closing' \
-        '        ByteArrayOutputStream baos = new ByteArrayOutputStream();' \
-        '        byte[] buffer = new byte[8192];' \
-        '        int len;' \
-        '        while ((len = knowledgePackage.read(buffer)) != -1) {' \
-        '            baos.write(buffer, 0, len);' \
-        '        }' \
-        '        knowledgePackage.close();' \
-        '        ByteArrayInputStream drlStream = new ByteArrayInputStream(baos.toByteArray());' \
-        '        ' \
+        '        // Build Drools KnowledgeBase from DRL loaded from the classpath, not from the passed InputStream.' \
+        '        // This avoids any issues with the framework closing the InputStream before Drools parses it.' \
         '        KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();' \
-        '        kbuilder.add(ResourceFactory.newInputStreamResource(drlStream), ResourceType.DRL);' \
+        '        kbuilder.add(' \
+        '            ResourceFactory.newClassPathResource(' \
+        '                "resources/knowledgePackages/org.opencds^veda-basic^1.0.0.drl", ' \
+        '                DroolsExecutionEngineAdapter.class' \
+        '            ),' \
+        '            ResourceType.DRL' \
+        '        );' \
         '        ' \
         '        if (kbuilder.hasErrors()) {' \
         '            throw new RuntimeException("DRL compilation errors: " + kbuilder.getErrors().toString());' \
