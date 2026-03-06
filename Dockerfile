@@ -480,7 +480,6 @@ import org.opencds.vmr.v1_0.internal.EvaluatedPerson;
 import org.opencds.vmr.v1_0.internal.EvalTime;
 import org.opencds.vmr.v1_0.internal.FocalPersonId;
 import org.opencds.vmr.v1_0.internal.Demographics;
-import org.opencds.vmr.v1_0.internal.EvaluatedPersonAgeAtEvalTime;
 
 @WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
