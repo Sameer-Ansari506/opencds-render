@@ -666,8 +666,8 @@ public class EvaluateServlet extends HttpServlet {
     }
     
     private String evaluateWithOpenCDS(String requestJson) throws Exception {
-        // Parse JSON request
-        JsonObject request = gson.fromJson(requestJson, JsonObject.class);
+        // Parse JSON request using JsonParser (more reliable than gson.fromJson for JsonObject)
+        JsonObject request = JsonParser.parseString(requestJson).getAsJsonObject();
         JsonObject vmr = request.getAsJsonObject("vmr");
         JsonObject kmRequest = request.getAsJsonObject("kmEvaluationRequest");
         
@@ -1166,10 +1166,16 @@ RUN echo "=== Compiling servlet ===" && \
         /build/PassThroughKnowledgeLoader.java && \
     echo "✅ Execution engine adapter classes compiled" && \
     echo "=== Compiling servlet with OpenCDS dependencies ===" && \
+    set +e && \
     javac -cp "$CLASSPATH" \
           -d /build/webapp/WEB-INF/classes \
-          /build/EvaluateServlet.java 2>&1 || { \
+          /build/EvaluateServlet.java > /tmp/javac_output.txt 2>&1 && \
+    JAVAC_STATUS=$? && \
+    set -e && \
+    if [ $JAVAC_STATUS -ne 0 ]; then \
         echo "=== COMPILATION FAILED ===" && \
+        echo "=== Full error output ===" && \
+        cat /tmp/javac_output.txt && \
         echo "=== Re-running javac with verbose output ===" && \
         javac -cp "$CLASSPATH" \
               -d /build/webapp/WEB-INF/classes \
@@ -1179,7 +1185,8 @@ RUN echo "=== Compiling servlet ===" && \
         ls -la /build/webapp/WEB-INF/classes/ 2>&1 || true && \
         find /build/webapp/WEB-INF/classes -name "*.class" -type f 2>&1 | head -20 || true && \
         exit 1; \
-    } && \
+    fi && \
+    cat /tmp/javac_output.txt && \
     echo "=== Servlet compiled successfully ===" && \
     ls -la /build/webapp/WEB-INF/classes/ && \
     test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
