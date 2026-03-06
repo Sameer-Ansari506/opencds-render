@@ -141,10 +141,10 @@ RUN echo "=== Downloading Drools 5.5 dependencies ===" && \
     curl -L -f -o /tmp/xpp3.jar \
     https://repo1.maven.org/maven2/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar && \
     cp /tmp/xpp3.jar /build/webapp/WEB-INF/lib/xpp3.jar && \
-    # Drools API (contains org.drools.command.Context and other API classes)
-    curl -L -f -o /tmp/drools-api.jar \
-    https://repo1.maven.org/maven2/org/drools/drools-api/5.5.0.Final/drools-api-5.5.0.Final.jar && \
-    cp /tmp/drools-api.jar /build/webapp/WEB-INF/lib/drools-api.jar && \
+    # Note: In Drools 5.5, org.drools.command.Context is in drools-core, not a separate drools-api artifact
+    # The drools-api artifact doesn't exist for Drools 5.5 - all API classes are bundled in drools-core
+    # If we still get ClassNotFoundException for org.drools.command.Context, we may need to check
+    # if it's in a different package or if we need a different Drools version
     echo "✅ Drools 5.5 dependencies and transitive dependencies added to WAR"
 
 # Note: JAXB and all other dependencies are now automatically copied via Maven dependency plugin above
