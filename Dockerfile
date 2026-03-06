@@ -835,6 +835,66 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – dysuria presentation\");\n" +' \
         '        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +' \
         '        "end\n" +' \
+        '        "// ── SYMPTOM: Polyuria / Frequent Urination (R35) → UTI workup ───────────────\n" +' \
+        '        "rule \"Symptom_Polyuria_UTI_WorkUp\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R35\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +' \
+        '        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +' \
+        '        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +' \
+        '        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +' \
+        '        "        Problem dx = new Problem(); CD dxc = new CD();\n" +' \
+        '        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – frequent urination presentation\");\n" +' \
+        '        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +' \
+        '        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +' \
+        '        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for uncomplicated UTI\");\n" +' \
+        '        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +' \
+        '        "end\n" +' \
+        '        "// ── SYMPTOM: Pain on Urination / Dysuria unspec (R30.9) → UTI workup ─────────\n" +' \
+        '        "rule \"Symptom_Dysuria_R309_WorkUp\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R30.9\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +' \
+        '        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +' \
+        '        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +' \
+        '        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +' \
+        '        "        Problem dx = new Problem(); CD dxc = new CD();\n" +' \
+        '        "        dxc.setCode(\"N39.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Urinary tract infection – pain on urination\");\n" +' \
+        '        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +' \
+        '        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +' \
+        '        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for uncomplicated UTI\");\n" +' \
+        '        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +' \
+        '        "end\n" +' \
+        '        "// ── SYMPTOM: Acute Cystitis (N30.0) ──────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_AcuteCystitis_WorkUp\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"N30.0\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"5767-9\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal o1 = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"5767-9\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Urinalysis – dipstick panel\");\n" +' \
+        '        "        o1.setObservationFocus(c1); o1.setToBeReturned(true); insert(o1);\n" +' \
+        '        "        ObservationProposal o2 = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"630-4\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Bacteria identified in Urine by Culture\");\n" +' \
+        '        "        o2.setObservationFocus(c2); o2.setToBeReturned(true); insert(o2);\n" +' \
+        '        "        Problem dx = new Problem(); CD dxc = new CD();\n" +' \
+        '        "        dxc.setCode(\"N30.0\"); dxc.setCodeSystem(\"ICD10\"); dxc.setDisplayName(\"Acute cystitis – bladder infection\");\n" +' \
+        '        "        dx.setProblemCode(dxc); dx.setToBeReturned(true); insert(dx);\n" +' \
+        '        "        SubstanceAdministrationProposal ab = new SubstanceAdministrationProposal(); CD mc = new CD();\n" +' \
+        '        "        mc.setCode(\"7454\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Nitrofurantoin (Macrobid) – first-line antibiotic for acute cystitis\");\n" +' \
+        '        "        ab.setAdministrableSubstance(mc); ab.setToBeReturned(true); insert(ab);\n" +' \
+        '        "end\n" +' \
         '        "// ── SYMPTOM: Type 2 Diabetes (E11.9) ─────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Diabetes_T2_WorkUp\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
