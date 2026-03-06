@@ -836,8 +836,11 @@ public class EvaluateServlet extends HttpServlet {
                         List<Problem> problems = new ArrayList<>();
                         if (patient.has("symptoms")) {
                             JsonArray symptoms = patient.getAsJsonArray("symptoms");
-                            for (int i = 0; i < symptoms.size(); i++) {
-                                JsonObject symptom = symptoms.get(i).getAsJsonObject();
+                            if (symptoms != null) {
+                                for (int i = 0; i < symptoms.size(); i++) {
+                                    JsonElement element = symptoms.get(i);
+                                    if (element != null && element.isJsonObject()) {
+                                        JsonObject symptom = element.getAsJsonObject();
                                 Problem problem = new Problem();
                                 problem.setId("problem-" + i);
                                 problem.setEvaluatedPersonId(patientId);
@@ -856,12 +859,17 @@ public class EvaluateServlet extends HttpServlet {
                                 }
                                 problem.setProblemCode(problemCode);
                                 problems.add(problem);
+                                    }
+                                }
                             }
                         }
                         if (patient.has("complaints")) {
                             JsonArray complaints = patient.getAsJsonArray("complaints");
-                            for (int i = 0; i < complaints.size(); i++) {
-                                JsonObject complaint = complaints.get(i).getAsJsonObject();
+                            if (complaints != null) {
+                                for (int i = 0; i < complaints.size(); i++) {
+                                    JsonElement element = complaints.get(i);
+                                    if (element != null && element.isJsonObject()) {
+                                        JsonObject complaint = element.getAsJsonObject();
                                 Problem problem = new Problem();
                                 problem.setId("complaint-" + i);
                                 problem.setEvaluatedPersonId(patientId);
@@ -880,6 +888,8 @@ public class EvaluateServlet extends HttpServlet {
                                 }
                                 problem.setProblemCode(problemCode);
                                 problems.add(problem);
+                                    }
+                                }
                             }
                         }
                         if (!problems.isEmpty()) {
