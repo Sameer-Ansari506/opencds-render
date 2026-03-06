@@ -1137,13 +1137,14 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath (includes all Maven dependencies) ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/drools-core.jar:/tmp/drools-compiler.jar:/tmp/knowledge-api.jar:/tmp/mvel2.jar:/tmp/antlr-runtime.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
     echo "Classpath contains $(echo $CLASSPATH | tr ':' '\n' | wc -l) entries" && \
     echo "=== Compiling execution engine adapter classes ===" && \
     javac -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
+        /build/DroolsExecutionEngineAdapter.java \
         /build/PassThroughExecutionEngineAdapter.java \
         /build/PassThroughExecutionEngineContext.java \
         /build/PassThroughKnowledgeLoader.java && \
