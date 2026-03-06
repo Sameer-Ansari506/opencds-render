@@ -226,7 +226,7 @@ public class PassThroughExecutionEngineAdapter implements ExecutionEngineAdapter
     }
 }
 EOADAPTER
-    cat > /build/PassThroughExecutionEngineContext.java << 'EOCONTEXT'
+    && cat > /build/PassThroughExecutionEngineContext.java << 'EOCONTEXT'
 package org.opencds.service.veda;
 
 import org.opencds.config.api.ExecutionEngineContext;
@@ -280,7 +280,7 @@ public class PassThroughExecutionEngineContext implements ExecutionEngineContext
     }
 }
 EOCONTEXT
-    cat > /build/PassThroughKnowledgeLoader.java << 'EOLOADER'
+    && cat > /build/PassThroughKnowledgeLoader.java << 'EOLOADER'
 package org.opencds.service.veda;
 
 import org.opencds.config.api.KnowledgeLoader;
@@ -300,7 +300,7 @@ public class PassThroughKnowledgeLoader implements KnowledgeLoader<String, Strin
     }
 }
 EOLOADER
-    echo "✅ Minimal execution engine adapter classes created"
+    && echo "✅ Minimal execution engine adapter classes created"
 
 # Create REST servlet Java source with OpenCDS integration
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
