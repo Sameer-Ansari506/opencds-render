@@ -635,7 +635,7 @@ public class EvaluateServlet extends HttpServlet {
                         try {
                             if (obj instanceof org.opencds.vmr.v1_0.internal.Problem) {
                                 org.opencds.vmr.v1_0.internal.Problem problem = (org.opencds.vmr.v1_0.internal.Problem) obj;
-                                if (problem.getToBeReturned()) {
+                                if (problem.isToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "diagnosis");
                                 
@@ -672,7 +672,7 @@ public class EvaluateServlet extends HttpServlet {
                         try {
                             if (obj instanceof org.opencds.vmr.v1_0.internal.ObservationProposal) {
                                 org.opencds.vmr.v1_0.internal.ObservationProposal obs = (org.opencds.vmr.v1_0.internal.ObservationProposal) obj;
-                                if (obs.getToBeReturned()) {
+                                if (obs.isToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "lab_order");
                                 
@@ -708,7 +708,7 @@ public class EvaluateServlet extends HttpServlet {
                         try {
                             if (obj instanceof org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) {
                                 org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal sub = (org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) obj;
-                                if (sub.getToBeReturned()) {
+                                if (sub.isToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "treatment");
                                 
@@ -745,7 +745,7 @@ public class EvaluateServlet extends HttpServlet {
                         try {
                             if (obj instanceof org.opencds.vmr.v1_0.internal.ProcedureProposal) {
                                 org.opencds.vmr.v1_0.internal.ProcedureProposal proc = (org.opencds.vmr.v1_0.internal.ProcedureProposal) obj;
-                                if (proc.getToBeReturned()) {
+                                if (proc.isToBeReturned()) {
                                 JsonObject proposal = new JsonObject();
                                 proposal.addProperty("type", "procedure");
                                 
