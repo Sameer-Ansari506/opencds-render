@@ -814,7 +814,7 @@ public class EvaluateServlet extends HttpServlet {
                             int age = demographicsJson.get("age").getAsInt();
                             // Set age in demographics
                             org.opencds.vmr.v1_0.internal.datatypes.PQ agePQ = new org.opencds.vmr.v1_0.internal.datatypes.PQ();
-                            agePQ.setValue(String.valueOf(age));
+                            agePQ.setValue((double) age); // PQ.setValue() expects double, not String
                             agePQ.setUnit("a"); // years
                             demographics.setAge(agePQ);
                         }
