@@ -1166,16 +1166,15 @@ RUN echo "=== Compiling servlet ===" && \
         /build/PassThroughKnowledgeLoader.java && \
     echo "✅ Execution engine adapter classes compiled" && \
     echo "=== Compiling servlet with OpenCDS dependencies ===" && \
-    COMPILE_OUTPUT=$(javac -cp "$CLASSPATH" \
+    javac -cp "$CLASSPATH" \
           -d /build/webapp/WEB-INF/classes \
-          /build/EvaluateServlet.java 2>&1) && \
-    COMPILE_STATUS=$? && \
-    if [ $COMPILE_STATUS -ne 0 ]; then \
+          /build/EvaluateServlet.java 2>&1 || { \
         echo "=== COMPILATION FAILED ===" && \
-        echo "$COMPILE_OUTPUT" && \
+        javac -cp "$CLASSPATH" \
+              -d /build/webapp/WEB-INF/classes \
+              /build/EvaluateServlet.java 2>&1 && \
         exit 1; \
-    fi && \
-    echo "$COMPILE_OUTPUT" && \
+    } && \
     echo "=== Servlet compiled successfully ===" && \
     ls -la /build/webapp/WEB-INF/classes/ && \
     test -f /build/webapp/WEB-INF/classes/EvaluateServlet.class || (echo "ERROR: Servlet class not compiled!" && exit 1)
