@@ -343,7 +343,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "global String focalPersonId\n" +' \
         '        "global java.util.Set assertions\n" +' \
         '        "global java.util.Map namedObjects\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Blood Pressure (USPSTF A – all adults 18+) ─────────────\n" +' \
         '        "rule \"Preventive_BloodPressureScreening\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -367,7 +367,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"73831-0\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"PHQ-9 Depression Screening\");\n" +' \
         '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Lipid Panel Male 35+ (USPSTF A) ────────────────────────\n" +' \
         '        "rule \"Preventive_LipidPanel_Male35\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -379,7 +379,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +' \
         '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Lipid Panel Female 45+ (USPSTF A) ───────────────────────\n" +' \
         '        "rule \"Preventive_LipidPanel_Female45\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -391,7 +391,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +' \
         '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Colorectal Cancer Screening 45-75 (USPSTF A) ───────────\n" +' \
         '        "rule \"Preventive_ColorectalCancer_45to75\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -403,7 +403,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"73761001\"); c.setCodeSystem(\"SNOMED-CT\"); c.setDisplayName(\"Colonoscopy (USPSTF A – colorectal cancer screening)\");\n" +' \
         '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Mammography Female 50-74 (USPSTF B) ────────────────────\n" +' \
         '        "rule \"Preventive_Mammography_Female50to74\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -415,7 +415,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"24606-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Mammography screening (USPSTF B)\");\n" +' \
         '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Cervical Cancer Pap Smear Female 21-65 (USPSTF A) ──────\n" +' \
         '        "rule \"Preventive_CervicalCancer_Female21to65\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -427,7 +427,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"19762-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Pap smear – cervical cancer screening (USPSTF A)\");\n" +' \
         '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Diabetes / Prediabetes HbA1c 35-70 (USPSTF B) ─────────\n" +' \
         '        "rule \"Preventive_DiabetesScreening_35to70\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -439,7 +439,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"17856-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Hemoglobin A1c – diabetes/prediabetes screening (USPSTF B)\");\n" +' \
         '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── PREVENTIVE CARE: Osteoporosis DEXA Scan Female 65+ (USPSTF B) ───────────\n" +' \
         '        "rule \"Preventive_Osteoporosis_Female65\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -451,7 +451,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"38269-7\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"DEXA bone density scan – osteoporosis screening (USPSTF B)\");\n" +' \
         '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Fever (R50.9) ────────────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Fever_CBC\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -463,7 +463,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"58410-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +' \
         '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "rule \"Symptom_Fever_Diagnosis\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
         '        "    when\n" +' \
@@ -474,7 +474,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"B34.9\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Viral infection, unspecified\");\n" +' \
         '        "        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Cough (R05) ──────────────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Cough_ChestXRay\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -486,7 +486,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c.setCode(\"24627-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Chest X-ray 2 views\");\n" +' \
         '        "        pr.setProcedureCode(c); pr.setToBeReturned(true); insert(pr);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Fever + Cough → COVID-19 + Influenza panel ───────────────────────\n" +' \
         '        "rule \"Symptom_FeverCough_RespiratoryPanel\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -506,7 +506,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        mc.setCode(\"352111000\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Oseltamivir (Tamiflu) – antiviral therapy\");\n" +' \
         '        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Headache (R51) ───────────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Headache_Assessment\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -522,7 +522,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400mg PO – analgesic\");\n" +' \
         '        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Chest Pain (R07.9) ───────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_ChestPain_CardiacWorkup\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -540,7 +540,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c3.setCode(\"42637-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"BNP [Mass/Vol] in Serum or Plasma\");\n" +' \
         '        "        bnp.setObservationFocus(c3); bnp.setToBeReturned(true); insert(bnp);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Shortness of Breath (R06.00) ────────────────────────────────────\n" +' \
         '        "rule \"Symptom_SOB_PulmonaryWorkup\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -555,7 +555,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c2.setCode(\"59408-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n" +' \
         '        "        spo2.setObservationFocus(c2); spo2.setToBeReturned(true); insert(spo2);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Fatigue (R53.83) ─────────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Fatigue_Workup\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -573,7 +573,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel – Serum or Plasma\");\n" +' \
         '        "        bmp.setObservationFocus(c3); bmp.setToBeReturned(true); insert(bmp);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Abdominal Pain (R10.9) ──────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_AbdominalPain_Workup\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
@@ -588,7 +588,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "        c2.setCode(\"1798-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Lipase [Enzymatic activity/volume] in Serum\");\n" +' \
         '        "        lip.setObservationFocus(c2); lip.setToBeReturned(true); insert(lip);\n" +' \
         '        "end\n" +' \
-        '\n" +' \
+        '        "\n" +' \
         '        "// ── SYMPTOM: Dizziness (R42) ──────────────────────────────────────────────────\n" +' \
         '        "rule \"Symptom_Dizziness_Assessment\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
