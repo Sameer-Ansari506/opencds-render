@@ -2477,18 +2477,18 @@ RUN echo "=== Compiling servlet ===" && \
     echo "=== Compiling VedaContextHolder ===" && \
     javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
         /build/VedaContextHolder.java 2>&1 && \
-    echo "=== Compiling DroolsExecutionEngineAdapter ===" && \
-    javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
-        /build/DroolsExecutionEngineAdapter.java 2>&1 && \
-    echo "=== Compiling PassThroughExecutionEngineAdapter ===" && \
-    javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
-        /build/PassThroughExecutionEngineAdapter.java 2>&1 && \
     echo "=== Compiling PassThroughExecutionEngineContext ===" && \
     javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
         /build/PassThroughExecutionEngineContext.java 2>&1 && \
+    echo "=== Compiling PassThroughExecutionEngineAdapter ===" && \
+    javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
+        /build/PassThroughExecutionEngineAdapter.java 2>&1 && \
     echo "=== Compiling PassThroughKnowledgeLoader ===" && \
     javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
         /build/PassThroughKnowledgeLoader.java 2>&1 && \
+    echo "=== Compiling DroolsExecutionEngineAdapter (depends on above) ===" && \
+    javac -encoding UTF-8 -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
+        /build/DroolsExecutionEngineAdapter.java 2>&1 && \
     echo "=== All adapter classes compiled ===" && \
     find /build/webapp/WEB-INF/classes -name "*.class" -type f && \
     echo "=== Compiling servlet with OpenCDS dependencies ===" && \
