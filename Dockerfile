@@ -313,7 +313,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         ' */' \
         'public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, InputStream> {' \
         '    ' \
-        '    // DRL rules embedded directly to avoid classpath/stream loading issues' \
+        '    // Production-level clinical knowledge base (USPSTF Grade A/B + symptom-based CDS)' \
         '    private static final String VEDA_DRL =' \
         '        "package VedaBasic_v1_0_0\n" +' \
         '        "import org.opencds.vmr.v1_0.internal.Demographics\n" +' \
@@ -331,66 +331,262 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        "global String focalPersonId\n" +' \
         '        "global java.util.Set assertions\n" +' \
         '        "global java.util.Map namedObjects\n" +' \
-        '        "rule \"ReturnAllClinicalStatements\"\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Blood Pressure (USPSTF A – all adults 18+) ─────────────\n" +' \
+        '        "rule \"Preventive_BloodPressureScreening\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
         '        "    when\n" +' \
-        '        "        $cs : ClinicalStatement()\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 18.0)\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n" +' \
         '        "    then\n" +' \
-        '        "        $cs.setToBeReturned(true);\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Blood pressure systolic and diastolic\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '        "rule \"ReturnAllEntities\"\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Depression Screening (USPSTF B – adults 18+) ──────────\n" +' \
+        '        "rule \"Preventive_DepressionScreening\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
         '        "    when\n" +' \
-        '        "        $entity : EntityBase()\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 18.0)\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"73831-0\")\n" +' \
         '        "    then\n" +' \
-        '        "        $entity.setToBeReturned(true);\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"73831-0\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"PHQ-9 Depression Screening\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '        "rule \"DefaultRecommendations\"\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Lipid Panel Male 35+ (USPSTF A) ────────────────────────\n" +' \
+        '        "rule \"Preventive_LipidPanel_Male35\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
-        '        "    salience -1\n" +' \
         '        "    when\n" +' \
-        '        "        $demo : Demographics()\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 35.0, gender != null, gender.code == \"M\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n" +' \
         '        "    then\n" +' \
-        '        "        Problem p = new Problem();\n" +' \
-        '        "        CD dx = new CD();\n" +' \
-        '        "        dx.setDisplayName(\"Acute Viral Syndrome\");\n" +' \
-        '        "        dx.setCode(\"B34.9\");\n" +' \
-        '        "        dx.setCodeSystem(\"ICD10\");\n" +' \
-        '        "        p.setProblemCode(dx);\n" +' \
-        '        "        p.setToBeReturned(true);\n" +' \
-        '        "        insert(p);\n" +' \
-        '        "        ObservationProposal lab = new ObservationProposal();\n" +' \
-        '        "        CD labCd = new CD();\n" +' \
-        '        "        labCd.setDisplayName(\"Complete Blood Count (CBC)\");\n" +' \
-        '        "        labCd.setCode(\"2093-3\");\n" +' \
-        '        "        labCd.setCodeSystem(\"LOINC\");\n" +' \
-        '        "        lab.setObservationFocus(labCd);\n" +' \
-        '        "        lab.setToBeReturned(true);\n" +' \
-        '        "        insert(lab);\n" +' \
-        '        "        SubstanceAdministrationProposal treat = new SubstanceAdministrationProposal();\n" +' \
-        '        "        AdministrableSubstance subs = new AdministrableSubstance();\n" +' \
-        '        "        CD subsCd = new CD();\n" +' \
-        '        "        subsCd.setDisplayName(\"Supportive Care\");\n" +' \
-        '        "        subsCd.setCode(\"SUPPORTIVE_CARE\");\n" +' \
-        '        "        subsCd.setCodeSystem(\"LOCAL\");\n" +' \
-        '        "        subs.setSubstanceCode(subsCd);\n" +' \
-        '        "        treat.setSubstance(subs);\n" +' \
-        '        "        treat.setToBeReturned(true);\n" +' \
-        '        "        insert(treat);\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
         '        "end\n" +' \
-        '        "rule \"SymptomBased_CBC\"\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Lipid Panel Female 45+ (USPSTF A) ───────────────────────\n" +' \
+        '        "rule \"Preventive_LipidPanel_Female45\"\n" +' \
         '        "    dialect \"mvel\"\n" +' \
         '        "    when\n" +' \
-        '        "        $p : Problem(problemCode != null)\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 45.0, gender != null, gender.code == \"F\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"2093-3\")\n" +' \
         '        "    then\n" +' \
-        '        "        ProcedureProposal proc = new ProcedureProposal();\n" +' \
-        '        "        CD procCd = new CD();\n" +' \
-        '        "        procCd.setDisplayName(\"Clinical Assessment\");\n" +' \
-        '        "        procCd.setCode(\"ASSESSMENT\");\n" +' \
-        '        "        procCd.setCodeSystem(\"LOCAL\");\n" +' \
-        '        "        proc.setProcedureCode(procCd);\n" +' \
-        '        "        proc.setToBeReturned(true);\n" +' \
-        '        "        insert(proc);\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"2093-3\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Cholesterol [Mass/volume] in Serum or Plasma\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Colorectal Cancer Screening 45-75 (USPSTF A) ───────────\n" +' \
+        '        "rule \"Preventive_ColorectalCancer_45to75\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 45.0, age.value <= 75.0)\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"73761001\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"73761001\"); c.setCodeSystem(\"SNOMED-CT\"); c.setDisplayName(\"Colonoscopy (USPSTF A – colorectal cancer screening)\");\n" +' \
+        '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Mammography Female 50-74 (USPSTF B) ────────────────────\n" +' \
+        '        "rule \"Preventive_Mammography_Female50to74\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 50.0, age.value <= 74.0, gender != null, gender.code == \"F\")\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24606-6\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"24606-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Mammography screening (USPSTF B)\");\n" +' \
+        '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Cervical Cancer Pap Smear Female 21-65 (USPSTF A) ──────\n" +' \
+        '        "rule \"Preventive_CervicalCancer_Female21to65\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 21.0, age.value <= 65.0, gender != null, gender.code == \"F\")\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"19762-4\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"19762-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Pap smear – cervical cancer screening (USPSTF A)\");\n" +' \
+        '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Diabetes / Prediabetes HbA1c 35-70 (USPSTF B) ─────────\n" +' \
+        '        "rule \"Preventive_DiabetesScreening_35to70\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 35.0, age.value <= 70.0)\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"17856-6\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"17856-6\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Hemoglobin A1c – diabetes/prediabetes screening (USPSTF B)\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── PREVENTIVE CARE: Osteoporosis DEXA Scan Female 65+ (USPSTF B) ───────────\n" +' \
+        '        "rule \"Preventive_Osteoporosis_Female65\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $d : Demographics(age != null, age.value >= 65.0, gender != null, gender.code == \"F\")\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"38269-7\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal p = new ProcedureProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"38269-7\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"DEXA bone density scan – osteoporosis screening (USPSTF B)\");\n" +' \
+        '        "        p.setProcedureCode(c); p.setToBeReturned(true); insert(p);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Fever (R50.9) ────────────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_Fever_CBC\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"58410-2\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal o = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"58410-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +' \
+        '        "        o.setObservationFocus(c); o.setToBeReturned(true); insert(o);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "rule \"Symptom_Fever_Diagnosis\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +' \
+        '        "        not Problem(problemCode != null, problemCode.code == \"B34.9\")\n" +' \
+        '        "    then\n" +' \
+        '        "        Problem dx = new Problem(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"B34.9\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Viral infection, unspecified\");\n" +' \
+        '        "        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Cough (R05) ──────────────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_Cough_ChestXRay\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R05\")\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal pr = new ProcedureProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"24627-2\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Chest X-ray 2 views\");\n" +' \
+        '        "        pr.setProcedureCode(c); pr.setToBeReturned(true); insert(pr);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Fever + Cough → COVID-19 + Influenza panel ───────────────────────\n" +' \
+        '        "rule \"Symptom_FeverCough_RespiratoryPanel\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $fever : Problem(problemCode != null, problemCode.code == \"R50.9\")\n" +' \
+        '        "        $cough : Problem(problemCode != null, problemCode.code == \"R05\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"94500-6\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal covid = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"94500-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"SARS-CoV-2 (COVID-19) RNA – Respiratory NAA\");\n" +' \
+        '        "        covid.setObservationFocus(c1); covid.setToBeReturned(true); insert(covid);\n" +' \
+        '        "        ObservationProposal flu = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"24015-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Influenza A+B Ag – Nasopharynx\");\n" +' \
+        '        "        flu.setObservationFocus(c2); flu.setToBeReturned(true); insert(flu);\n" +' \
+        '        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n" +' \
+        '        "        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n" +' \
+        '        "        mc.setCode(\"352111000\"); mc.setCodeSystem(\"SNOMED-CT\"); mc.setDisplayName(\"Oseltamivir (Tamiflu) – antiviral therapy\");\n" +' \
+        '        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Headache (R51) ───────────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_Headache_Assessment\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R51\")\n" +' \
+        '        "        not Problem(problemCode != null, problemCode.code == \"G44.309\")\n" +' \
+        '        "    then\n" +' \
+        '        "        Problem dx = new Problem(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"G44.309\"); c.setCodeSystem(\"ICD10\"); c.setDisplayName(\"Tension-type headache, unspecified\");\n" +' \
+        '        "        dx.setProblemCode(c); dx.setToBeReturned(true); insert(dx);\n" +' \
+        '        "        SubstanceAdministrationProposal med = new SubstanceAdministrationProposal();\n" +' \
+        '        "        AdministrableSubstance s = new AdministrableSubstance(); CD mc = new CD();\n" +' \
+        '        "        mc.setCode(\"1049502\"); mc.setCodeSystem(\"RxNorm\"); mc.setDisplayName(\"Ibuprofen 400mg PO – analgesic\");\n" +' \
+        '        "        s.setSubstanceCode(mc); med.setSubstance(s); med.setToBeReturned(true); insert(med);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Chest Pain (R07.9) ───────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_ChestPain_CardiacWorkup\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R07.9\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11524-6\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal ecg = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"11524-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"12-lead EKG\");\n" +' \
+        '        "        ecg.setObservationFocus(c1); ecg.setToBeReturned(true); insert(ecg);\n" +' \
+        '        "        ObservationProposal trop = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"42757-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Troponin I Cardiac [Mass/Vol]\");\n" +' \
+        '        "        trop.setObservationFocus(c2); trop.setToBeReturned(true); insert(trop);\n" +' \
+        '        "        ObservationProposal bnp = new ObservationProposal(); CD c3 = new CD();\n" +' \
+        '        "        c3.setCode(\"42637-9\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"BNP [Mass/Vol] in Serum or Plasma\");\n" +' \
+        '        "        bnp.setObservationFocus(c3); bnp.setToBeReturned(true); insert(bnp);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Shortness of Breath (R06.00) ────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_SOB_PulmonaryWorkup\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R06.00\")\n" +' \
+        '        "        not ProcedureProposal(procedureCode != null, procedureCode.code == \"24627-2\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ProcedureProposal cxr = new ProcedureProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"24627-2\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Chest X-ray 2 views\");\n" +' \
+        '        "        cxr.setProcedureCode(c1); cxr.setToBeReturned(true); insert(cxr);\n" +' \
+        '        "        ObservationProposal spo2 = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"59408-5\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Oxygen saturation in Arterial blood (pulse ox)\");\n" +' \
+        '        "        spo2.setObservationFocus(c2); spo2.setToBeReturned(true); insert(spo2);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Fatigue (R53.83) ─────────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_Fatigue_Workup\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R53.83\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"11580-8\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal tsh = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"11580-8\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"TSH [Units/Vol] – thyroid function\");\n" +' \
+        '        "        tsh.setObservationFocus(c1); tsh.setToBeReturned(true); insert(tsh);\n" +' \
+        '        "        ObservationProposal cbc = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"58410-2\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"CBC panel – Blood by Automated count\");\n" +' \
+        '        "        cbc.setObservationFocus(c2); cbc.setToBeReturned(true); insert(cbc);\n" +' \
+        '        "        ObservationProposal bmp = new ObservationProposal(); CD c3 = new CD();\n" +' \
+        '        "        c3.setCode(\"51990-0\"); c3.setCodeSystem(\"LOINC\"); c3.setDisplayName(\"Basic metabolic panel – Serum or Plasma\");\n" +' \
+        '        "        bmp.setObservationFocus(c3); bmp.setToBeReturned(true); insert(bmp);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Abdominal Pain (R10.9) ──────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_AbdominalPain_Workup\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R10.9\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"1960-6\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal lft = new ObservationProposal(); CD c1 = new CD();\n" +' \
+        '        "        c1.setCode(\"1960-6\"); c1.setCodeSystem(\"LOINC\"); c1.setDisplayName(\"Aspartate aminotransferase [Enzymatic activity/volume]\");\n" +' \
+        '        "        lft.setObservationFocus(c1); lft.setToBeReturned(true); insert(lft);\n" +' \
+        '        "        ObservationProposal lip = new ObservationProposal(); CD c2 = new CD();\n" +' \
+        '        "        c2.setCode(\"1798-0\"); c2.setCodeSystem(\"LOINC\"); c2.setDisplayName(\"Lipase [Enzymatic activity/volume] in Serum\");\n" +' \
+        '        "        lip.setObservationFocus(c2); lip.setToBeReturned(true); insert(lip);\n" +' \
+        '        "end\n" +' \
+        '        "\n" +' \
+        '        "// ── SYMPTOM: Dizziness (R42) ──────────────────────────────────────────────────\n" +' \
+        '        "rule \"Symptom_Dizziness_Assessment\"\n" +' \
+        '        "    dialect \"mvel\"\n" +' \
+        '        "    when\n" +' \
+        '        "        $p : Problem(problemCode != null, problemCode.code == \"R42\")\n" +' \
+        '        "        not ObservationProposal(observationFocus != null, observationFocus.code == \"55284-4\")\n" +' \
+        '        "    then\n" +' \
+        '        "        ObservationProposal bp = new ObservationProposal(); CD c = new CD();\n" +' \
+        '        "        c.setCode(\"55284-4\"); c.setCodeSystem(\"LOINC\"); c.setDisplayName(\"Orthostatic blood pressure check\");\n" +' \
+        '        "        bp.setObservationFocus(c); bp.setToBeReturned(true); insert(bp);\n" +' \
         '        "end\n";' \
         '    ' \
         '    @Override' \
