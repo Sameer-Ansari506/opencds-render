@@ -1592,8 +1592,9 @@ public class DroolsExecutionEngineAdapter implements ExecutionEngineAdapter<Map<
             ksession.setGlobal("clientLanguage", evalContext.getClientLanguage());
             ksession.setGlobal("clientTimeZoneOffset", evalContext.getClientTimeZoneOffset());
             ksession.setGlobal("focalPersonId", evalContext.getFocalPersonId());
-            ksession.setGlobal("assertions", evalContext.getAssertions());
-            ksession.setGlobal("namedObjects", evalContext.getNamedObjects());
+            // assertions and namedObjects are Drools-internal globals not exposed by EvaluationContext
+            ksession.setGlobal("assertions", new java.util.HashSet<String>());
+            ksession.setGlobal("namedObjects", new java.util.HashMap<String, Object>());
         } else {
             // Fallback to defaults
             ksession.setGlobal("evalTime", new java.util.Date());
