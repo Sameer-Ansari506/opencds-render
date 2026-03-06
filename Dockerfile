@@ -1093,7 +1093,7 @@ public class EvaluateServlet extends HttpServlet {
     
     private String getMockResponse(String requestJson) {
         // Parse request to provide context-aware mock response
-        JsonObject request = gson.fromJson(requestJson, JsonObject.class);
+        JsonObject request = new JsonParser().parse(requestJson).getAsJsonObject();
         JsonObject vmr = request != null ? request.getAsJsonObject("vmr") : null;
         
         JsonObject response = new JsonObject();
