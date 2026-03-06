@@ -126,20 +126,19 @@ RUN echo "=== Copying OpenCDS configuration files ===" && \
     echo "✅ OpenCDS configuration files copied (minimal config - VMR only, plugins and FHIR hooks disabled)"
 
 # Create execution engines configuration
-# Note: We're using a Drools adapter identifier, but the actual adapter classes may not be available
-# OpenCDS will attempt to load the adapter dynamically. If it fails, the knowledge module won't load.
+# Using our minimal pass-through adapter instead of Drools
 RUN echo "=== Creating execution engines configuration ===" && \
     printf '%s\n' \
         '<?xml version="1.0" encoding="UTF-8"?>' \
         '<ns2:executionEngines xsi:schemaLocation="org.opencds.config.rest.v2 ../../../../../../opencds-parent/opencds-config/opencds-config-schema/src/main/resources/schema/OpenCDSConfigRest.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns2="org.opencds.config.rest.v2">' \
         '    <executionEngine>' \
-        '        <identifier>org.opencds.service.drools.v55.DroolsAdapter</identifier>' \
-        '        <adapter>org.opencds.service.drools.v55.NewDroolsAdapter</adapter>' \
-        '        <context>org.opencds.service.drools.v55.DroolsExecutionContext</context>' \
-        '        <knowledgeLoader>org.opencds.service.drools.v55.DroolsKnowledgeLoader</knowledgeLoader>' \
-        '        <description>Drools 5.5 based adapter</description>' \
-        '        <timestamp>2014-04-08T00:00:00</timestamp>' \
-        '        <userId>phillip</userId>' \
+        '        <identifier>org.opencds.service.veda.PassThroughAdapter</identifier>' \
+        '        <adapter>org.opencds.service.veda.PassThroughExecutionEngineAdapter</adapter>' \
+        '        <context>org.opencds.service.veda.PassThroughExecutionEngineContext</context>' \
+        '        <knowledgeLoader>org.opencds.service.veda.PassThroughKnowledgeLoader</knowledgeLoader>' \
+        '        <description>Veda pass-through execution engine adapter (minimal implementation)</description>' \
+        '        <timestamp>2024-01-01T00:00:00</timestamp>' \
+        '        <userId>veda</userId>' \
         '        <supportedOperation>EVALUATION.EVALUATE</supportedOperation>' \
         '        <supportedOperation>EVALUATION.EVALUATE_AT_SPECIFIED_TIME</supportedOperation>' \
         '    </executionEngine>' \
@@ -154,7 +153,7 @@ RUN echo "=== Creating knowledge modules configuration ===" && \
         '    <knowledgeModule>' \
         '        <identifier scopingEntityId="org.opencds" businessId="veda-basic" version="1.0.0" />' \
         '        <status>APPROVED</status>' \
-        '        <executionEngine>org.opencds.service.drools.v55.DroolsAdapter</executionEngine>' \
+        '        <executionEngine>org.opencds.service.veda.PassThroughAdapter</executionEngine>' \
         '        <semanticSignifierId scopingEntityId="org.opencds.vmr" businessId="VMR" version="1.0" />' \
         '        <package>' \
         '            <packageType>DRL</packageType>' \
@@ -197,6 +196,111 @@ RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
         '        $entity.setToBeReturned(true);' \
         'end' > /build/webapp/WEB-INF/classes/resources/knowledgePackages/org.opencds^veda-basic^1.0.0.drl && \
     echo "✅ Knowledge package (DRL file) created"
+
+# Create minimal execution engine adapter (pass-through implementation)
+RUN echo "=== Creating minimal execution engine adapter ===" && \
+    cat > /build/PassThroughExecutionEngineAdapter.java << 'EOADAPTER'
+package org.opencds.service.veda;
+
+import org.opencds.config.api.ExecutionEngineAdapter;
+import org.opencds.config.api.ExecutionEngineContext;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
+
+/**
+ * Minimal pass-through execution engine adapter.
+ * This adapter simply returns the input as output without any rule evaluation.
+ * It's used when Drools adapters are not available.
+ */
+public class PassThroughExecutionEngineAdapter implements ExecutionEngineAdapter<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>, String> {
+    
+    @Override
+    public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> execute(
+            String knowledgePackage,
+            ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> context) throws Exception {
+        
+        // Pass-through: return input as output
+        Map<Class<?>, List<?>> input = context.getInput();
+        return context.setResults(input);
+    }
+}
+EOADAPTER
+    cat > /build/PassThroughExecutionEngineContext.java << 'EOCONTEXT'
+package org.opencds.service.veda;
+
+import org.opencds.config.api.ExecutionEngineContext;
+import org.opencds.config.api.EvaluationContext;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
+
+/**
+ * Minimal execution engine context implementation.
+ */
+public class PassThroughExecutionEngineContext implements ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> {
+    
+    private Map<Class<?>, List<?>> input;
+    private Map<Class<?>, List<?>> results;
+    private EvaluationContext evaluationContext;
+    
+    public PassThroughExecutionEngineContext(Map<Class<?>, List<?>> input) {
+        this.input = input != null ? input : new HashMap<>();
+        this.results = new HashMap<>();
+    }
+    
+    @Override
+    public Map<Class<?>, List<?>> getInput() {
+        return input;
+    }
+    
+    @Override
+    public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> setResults(Map<Class<?>, List<?>> results) {
+        this.results = results != null ? results : new HashMap<>();
+        return this;
+    }
+    
+    @Override
+    public Map<String, List<?>> getResults() {
+        Map<String, List<?>> stringResults = new HashMap<>();
+        if (results != null) {
+            for (Map.Entry<Class<?>, List<?>> entry : results.entrySet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    stringResults.put(entry.getKey().getName(), entry.getValue());
+                }
+            }
+        }
+        return stringResults;
+    }
+    
+    @Override
+    public ExecutionEngineContext<Map<Class<?>, List<?>>, Map<Class<?>, List<?>>> setEvaluationContext(EvaluationContext evaluationContext) {
+        this.evaluationContext = evaluationContext;
+        return this;
+    }
+}
+EOCONTEXT
+    cat > /build/PassThroughKnowledgeLoader.java << 'EOLOADER'
+package org.opencds.service.veda;
+
+import org.opencds.config.api.KnowledgeLoader;
+import org.opencds.config.api.model.KnowledgeModule;
+import java.util.function.Function;
+
+/**
+ * Minimal knowledge loader implementation.
+ * Returns the knowledge package ID as a string (for DRL files, this would be the file path).
+ */
+public class PassThroughKnowledgeLoader implements KnowledgeLoader<String, String> {
+    
+    @Override
+    public String loadKnowledgePackage(KnowledgeModule knowledgeModule, Function<KnowledgeModule, String> inputFunction) {
+        // Return the package ID as the knowledge package
+        return inputFunction.apply(knowledgeModule);
+    }
+}
+EOLOADER
+    echo "✅ Minimal execution engine adapter classes created"
 
 # Create REST servlet Java source with OpenCDS integration
 RUN cat > /build/EvaluateServlet.java << 'EOJAVA'
@@ -609,6 +713,12 @@ RUN echo "=== Compiling servlet ===" && \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
     echo "Classpath contains $(echo $CLASSPATH | tr ':' '\n' | wc -l) entries" && \
+    echo "=== Compiling execution engine adapter classes ===" && \
+    javac -cp "$CLASSPATH" -d /build/webapp/WEB-INF/classes \
+        /build/PassThroughExecutionEngineAdapter.java \
+        /build/PassThroughExecutionEngineContext.java \
+        /build/PassThroughKnowledgeLoader.java && \
+    echo "✅ Execution engine adapter classes compiled" && \
     echo "=== Compiling servlet with OpenCDS dependencies ===" && \
     javac -cp "$CLASSPATH" \
           -d /build/webapp/WEB-INF/classes \
