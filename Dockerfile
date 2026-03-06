@@ -103,49 +103,45 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
     cp /tmp/commons-logging.jar /build/webapp/WEB-INF/lib/commons-logging.jar && \
     echo "✅ Apache Commons Logging added to WAR"
 
-# Download Drools 5.5 dependencies (required for real rule evaluation)
-RUN echo "=== Downloading Drools 5.5 dependencies ===" && \
-    # Drools Core
-    curl -L -f -o /tmp/drools-core.jar \
-    https://repo1.maven.org/maven2/org/drools/drools-core/5.5.0.Final/drools-core-5.5.0.Final.jar && \
-    cp /tmp/drools-core.jar /build/webapp/WEB-INF/lib/drools-core.jar && \
-    # Drools Compiler
-    curl -L -f -o /tmp/drools-compiler.jar \
-    https://repo1.maven.org/maven2/org/drools/drools-compiler/5.5.0.Final/drools-compiler-5.5.0.Final.jar && \
-    cp /tmp/drools-compiler.jar /build/webapp/WEB-INF/lib/drools-compiler.jar && \
-    # Knowledge API
-    curl -L -f -o /tmp/knowledge-api.jar \
-    https://repo1.maven.org/maven2/org/drools/knowledge-api/5.5.0.Final/knowledge-api-5.5.0.Final.jar && \
-    cp /tmp/knowledge-api.jar /build/webapp/WEB-INF/lib/knowledge-api.jar && \
-    # MVEL (required by Drools)
-    curl -L -f -o /tmp/mvel2.jar \
-    https://repo1.maven.org/maven2/org/mvel/mvel2/2.1.3.Final/mvel2-2.1.3.Final.jar && \
-    cp /tmp/mvel2.jar /build/webapp/WEB-INF/lib/mvel2.jar && \
-    # Antlr Runtime (required by Drools compiler)
-    curl -L -f -o /tmp/antlr-runtime.jar \
-    https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.3/antlr-runtime-3.3.jar && \
-    cp /tmp/antlr-runtime.jar /build/webapp/WEB-INF/lib/antlr-runtime.jar && \
-    # Janino (required by Drools compiler for Java code compilation)
-    curl -L -f -o /tmp/janino.jar \
-    https://repo1.maven.org/maven2/org/codehaus/janino/janino/2.7.8/janino-2.7.8.jar && \
-    cp /tmp/janino.jar /build/webapp/WEB-INF/lib/janino.jar && \
-    # Commons Lang (required by Drools)
-    curl -L -f -o /tmp/commons-lang.jar \
-    https://repo1.maven.org/maven2/commons-lang/commons-lang/2.6/commons-lang-2.6.jar && \
-    cp /tmp/commons-lang.jar /build/webapp/WEB-INF/lib/commons-lang.jar && \
-    # XStream (required by Drools for serialization)
-    curl -L -f -o /tmp/xstream.jar \
-    https://repo1.maven.org/maven2/com/thoughtworks/xstream/xstream/1.4.10/xstream-1.4.10.jar && \
-    cp /tmp/xstream.jar /build/webapp/WEB-INF/lib/xstream.jar && \
-    # XPP3 (required by XStream)
-    curl -L -f -o /tmp/xpp3.jar \
-    https://repo1.maven.org/maven2/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar && \
-    cp /tmp/xpp3.jar /build/webapp/WEB-INF/lib/xpp3.jar && \
-    # Note: In Drools 5.5, org.drools.command.Context is in drools-core, not a separate drools-api artifact
-    # The drools-api artifact doesn't exist for Drools 5.5 - all API classes are bundled in drools-core
-    # If we still get ClassNotFoundException for org.drools.command.Context, we may need to check
-    # if it's in a different package or if we need a different Drools version
-    echo "✅ Drools 5.5 dependencies and transitive dependencies added to WAR"
+# Download Drools 5.5 dependencies using Maven to get ALL transitive dependencies
+# This ensures we get org.drools.command.Context and all other required classes
+RUN echo "=== Downloading Drools 5.5 dependencies with Maven (includes transitive deps) ===" && \
+    mkdir -p /tmp/drools-deps && \
+    cd /tmp/drools-deps && \
+    # Create a minimal pom.xml to download Drools dependencies
+    cat > pom.xml << 'EOFDROOLS' && \
+<?xml version="1.0" encoding="UTF-8"?> \
+<project xmlns="http://maven.apache.org/POM/4.0.0" \
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" \
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"> \
+    <modelVersion>4.0.0</modelVersion> \
+    <groupId>org.opencds</groupId> \
+    <artifactId>drools-deps</artifactId> \
+    <version>1.0</version> \
+    <dependencies> \
+        <dependency> \
+            <groupId>org.drools</groupId> \
+            <artifactId>drools-core</artifactId> \
+            <version>5.5.0.Final</version> \
+        </dependency> \
+        <dependency> \
+            <groupId>org.drools</groupId> \
+            <artifactId>drools-compiler</artifactId> \
+            <version>5.5.0.Final</version> \
+        </dependency> \
+        <dependency> \
+            <groupId>org.drools</groupId> \
+            <artifactId>knowledge-api</artifactId> \
+            <version>5.5.0.Final</version> \
+        </dependency> \
+    </dependencies> \
+</project> \
+EOFDROOLS
+    # Use Maven to download all dependencies (including transitive ones)
+    mvn dependency:copy-dependencies -DoutputDirectory=/tmp/drools-libs && \
+    # Copy all downloaded JARs to WEB-INF/lib
+    cp /tmp/drools-libs/*.jar /build/webapp/WEB-INF/lib/ && \
+    echo "✅ Drools 5.5 dependencies and ALL transitive dependencies added to WAR"
 
 # Note: JAXB and all other dependencies are now automatically copied via Maven dependency plugin above
 # No need to manually download them
