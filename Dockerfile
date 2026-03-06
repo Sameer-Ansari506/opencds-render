@@ -666,9 +666,8 @@ public class EvaluateServlet extends HttpServlet {
     }
     
     private String evaluateWithOpenCDS(String requestJson) throws Exception {
-        // Parse JSON request using JsonParser
-        // Note: JsonParser.parseString() is available in Gson 2.8.6+, for older versions use new JsonParser().parse()
-        JsonObject request = new JsonParser().parse(requestJson).getAsJsonObject();
+        // Parse JSON request - use JsonParser.parseString() for Gson 2.8.6+
+        JsonObject request = JsonParser.parseString(requestJson).getAsJsonObject();
         JsonObject vmr = request.getAsJsonObject("vmr");
         JsonObject kmRequest = request.getAsJsonObject("kmEvaluationRequest");
         
