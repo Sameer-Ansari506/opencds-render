@@ -623,6 +623,15 @@ public class EvaluateServlet extends HttpServlet {
             Map<String, List<?>> resultFactLists = evalResponse.getResultFactLists();
             getServletContext().log("Result fact lists keys: " + (resultFactLists != null ? resultFactLists.keySet().toString() : "null"));
             
+            // Log all keys and their sizes for debugging
+            if (resultFactLists != null) {
+                for (Map.Entry<String, List<?>> entry : resultFactLists.entrySet()) {
+                    getServletContext().log("Key: " + entry.getKey() + ", Size: " + (entry.getValue() != null ? entry.getValue().size() : "null"));
+                }
+            } else {
+                getServletContext().log("WARNING: resultFactLists is null - OpenCDS returned empty results");
+            }
+            
             if (resultFactLists != null) {
                 // Extract Problems (diagnoses)
                 // Try both simple name and fully qualified name
