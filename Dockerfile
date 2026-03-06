@@ -1167,7 +1167,7 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath (includes all Maven dependencies) ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/drools-core.jar:/tmp/drools-compiler.jar:/tmp/drools-api.jar:/tmp/knowledge-api.jar:/tmp/mvel2.jar:/tmp/antlr-runtime.jar:/tmp/janino.jar:/tmp/commons-lang.jar:/tmp/xstream.jar:/tmp/xpp3.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/drools-core.jar:/tmp/drools-compiler.jar:/tmp/knowledge-api.jar:/tmp/mvel2.jar:/tmp/antlr-runtime.jar:/tmp/janino.jar:/tmp/commons-lang.jar:/tmp/xstream.jar:/tmp/xpp3.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
