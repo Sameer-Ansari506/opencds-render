@@ -329,6 +329,12 @@ import org.opencds.evaluation.service.EvaluationService;
 import org.opencds.evaluation.service.EvaluationServiceImpl;
 import org.opencds.evaluation.service.util.CallableUtil;
 import org.opencds.evaluation.service.util.CallableUtilImpl;
+import org.opencds.vmr.v1_0.internal.Problem;
+import org.opencds.vmr.v1_0.internal.ObservationProposal;
+import org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal;
+import org.opencds.vmr.v1_0.internal.ProcedureProposal;
+import org.opencds.vmr.v1_0.internal.AdministrableSubstance;
+import org.opencds.vmr.v1_0.internal.datatypes.CD;
 
 @WebServlet(name = "EvaluateServlet", urlPatterns = {"/opencds-decision-support-service/evaluate"})
 public class EvaluateServlet extends HttpServlet {
@@ -612,34 +618,141 @@ public class EvaluateServlet extends HttpServlet {
         
         getServletContext().log("Converting OpenCDS response to JSON");
         
-        // Extract proposals from OpenCDS response
-        // The EvaluationResponseKMItem contains resultFactLists which need to be parsed
-        // This is a complex conversion that requires understanding OpenCDS's internal structure
-        
-        // For now, we'll create a response indicating OpenCDS was called successfully
-        // The actual parsing of resultFactLists will be implemented next
-        
         try {
-            // Log response structure for debugging
-            getServletContext().log("Response KM Item: " + evalResponse.toString());
+            // Get result fact lists from OpenCDS response
+            Map<String, List<?>> resultFactLists = evalResponse.getResultFactLists();
+            getServletContext().log("Result fact lists keys: " + (resultFactLists != null ? resultFactLists.keySet().toString() : "null"));
             
-            // TODO: Parse resultFactLists from evalResponse
-            // The resultFactLists contain the actual evaluation results
-            // These need to be converted to our proposal format
+            if (resultFactLists != null) {
+                // Extract Problems (diagnoses)
+                List<?> problems = resultFactLists.get("Problem");
+                if (problems != null) {
+                    for (Object obj : problems) {
+                        if (obj instanceof org.opencds.vmr.v1_0.internal.Problem) {
+                            org.opencds.vmr.v1_0.internal.Problem problem = (org.opencds.vmr.v1_0.internal.Problem) obj;
+                            if (problem.getToBeReturned()) {
+                                JsonObject proposal = new JsonObject();
+                                proposal.addProperty("type", "diagnosis");
+                                
+                                org.opencds.vmr.v1_0.internal.datatypes.CD problemCode = problem.getProblemCode();
+                                if (problemCode != null) {
+                                    proposal.addProperty("displayName", problemCode.getDisplayName() != null ? problemCode.getDisplayName() : "Unknown Diagnosis");
+                                    proposal.addProperty("code", problemCode.getCode() != null ? problemCode.getCode() : "");
+                                    if (problemCode.getCodeSystem() != null) {
+                                        proposal.addProperty("codeSystem", problemCode.getCodeSystem());
+                                    }
+                                } else {
+                                    proposal.addProperty("displayName", "Unknown Diagnosis");
+                                    proposal.addProperty("code", "");
+                                }
+                                
+                                proposal.addProperty("confidence", 75); // Default confidence
+                                proposal.addProperty("evidenceGrade", "B"); // Default grade
+                                proposals.add(proposal);
+                            }
+                        }
+                    }
+                }
+                
+                // Extract ObservationProposal (lab orders)
+                List<?> observationProposals = resultFactLists.get("ObservationProposal");
+                if (observationProposals != null) {
+                    for (Object obj : observationProposals) {
+                        if (obj instanceof org.opencds.vmr.v1_0.internal.ObservationProposal) {
+                            org.opencds.vmr.v1_0.internal.ObservationProposal obs = (org.opencds.vmr.v1_0.internal.ObservationProposal) obj;
+                            if (obs.getToBeReturned()) {
+                                JsonObject proposal = new JsonObject();
+                                proposal.addProperty("type", "lab_order");
+                                
+                                org.opencds.vmr.v1_0.internal.datatypes.CD focus = obs.getObservationFocus();
+                                if (focus != null) {
+                                    proposal.addProperty("displayName", focus.getDisplayName() != null ? focus.getDisplayName() : "Unknown Lab");
+                                    proposal.addProperty("code", focus.getCode() != null ? focus.getCode() : "");
+                                    if (focus.getCodeSystem() != null) {
+                                        proposal.addProperty("codeSystem", focus.getCodeSystem());
+                                    }
+                                } else {
+                                    proposal.addProperty("displayName", "Unknown Lab");
+                                    proposal.addProperty("code", "");
+                                }
+                                
+                                proposal.addProperty("urgency", "routine"); // Default urgency
+                                proposals.add(proposal);
+                            }
+                        }
+                    }
+                }
+                
+                // Extract SubstanceAdministrationProposal (treatments/medications)
+                List<?> substanceProposals = resultFactLists.get("SubstanceAdministrationProposal");
+                if (substanceProposals != null) {
+                    for (Object obj : substanceProposals) {
+                        if (obj instanceof org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) {
+                            org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal sub = (org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal) obj;
+                            if (sub.getToBeReturned()) {
+                                JsonObject proposal = new JsonObject();
+                                proposal.addProperty("type", "treatment");
+                                
+                                org.opencds.vmr.v1_0.internal.AdministrableSubstance substance = sub.getSubstance();
+                                if (substance != null && substance.getSubstanceCode() != null) {
+                                    org.opencds.vmr.v1_0.internal.datatypes.CD substanceCode = substance.getSubstanceCode();
+                                    proposal.addProperty("displayName", substanceCode.getDisplayName() != null ? substanceCode.getDisplayName() : "Unknown Treatment");
+                                    proposal.addProperty("code", substanceCode.getCode() != null ? substanceCode.getCode() : "");
+                                    if (substanceCode.getCodeSystem() != null) {
+                                        proposal.addProperty("codeSystem", substanceCode.getCodeSystem());
+                                    }
+                                } else {
+                                    proposal.addProperty("displayName", "Unknown Treatment");
+                                    proposal.addProperty("code", "");
+                                }
+                                
+                                proposal.addProperty("treatmentType", "medication");
+                                proposals.add(proposal);
+                            }
+                        }
+                    }
+                }
+                
+                // Extract ProcedureProposal (procedures)
+                List<?> procedureProposals = resultFactLists.get("ProcedureProposal");
+                if (procedureProposals != null) {
+                    for (Object obj : procedureProposals) {
+                        if (obj instanceof org.opencds.vmr.v1_0.internal.ProcedureProposal) {
+                            org.opencds.vmr.v1_0.internal.ProcedureProposal proc = (org.opencds.vmr.v1_0.internal.ProcedureProposal) obj;
+                            if (proc.getToBeReturned()) {
+                                JsonObject proposal = new JsonObject();
+                                proposal.addProperty("type", "procedure");
+                                
+                                org.opencds.vmr.v1_0.internal.datatypes.CD procedureCode = proc.getProcedureCode();
+                                if (procedureCode != null) {
+                                    proposal.addProperty("displayName", procedureCode.getDisplayName() != null ? procedureCode.getDisplayName() : "Unknown Procedure");
+                                    proposal.addProperty("code", procedureCode.getCode() != null ? procedureCode.getCode() : "");
+                                    if (procedureCode.getCodeSystem() != null) {
+                                        proposal.addProperty("codeSystem", procedureCode.getCodeSystem());
+                                    }
+                                } else {
+                                    proposal.addProperty("displayName", "Unknown Procedure");
+                                    proposal.addProperty("code", "");
+                                }
+                                
+                                proposals.add(proposal);
+                            }
+                        }
+                    }
+                }
+            }
             
-            // Placeholder: Return a response indicating OpenCDS was called
-            JsonObject proposal = new JsonObject();
-            proposal.addProperty("type", "diagnosis");
-            proposal.addProperty("displayName", "OpenCDS Evaluation Result");
-            proposal.addProperty("confidence", 75);
-            proposal.addProperty("rationale", "Generated by OpenCDS evaluation engine (response parsing pending)");
-            proposal.addProperty("evidenceGrade", "A");
-            proposal.addProperty("code", "Z00.0");
-            proposals.add(proposal);
+            getServletContext().log("Extracted " + proposals.size() + " proposals from OpenCDS response");
             
         } catch (Exception e) {
             getServletContext().log("Error converting response: " + e.getMessage(), e);
-            // Return minimal response
+            e.printStackTrace();
+            // Return minimal response if parsing fails
+            JsonObject proposal = new JsonObject();
+            proposal.addProperty("type", "error");
+            proposal.addProperty("displayName", "Error parsing OpenCDS response");
+            proposal.addProperty("message", e.getMessage());
+            proposals.add(proposal);
         }
         
         clinicalStatements.add("proposals", proposals);
