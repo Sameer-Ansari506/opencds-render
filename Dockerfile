@@ -141,6 +141,10 @@ RUN echo "=== Downloading Drools 5.5 dependencies ===" && \
     curl -L -f -o /tmp/xpp3.jar \
     https://repo1.maven.org/maven2/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar && \
     cp /tmp/xpp3.jar /build/webapp/WEB-INF/lib/xpp3.jar && \
+    # Drools API (contains org.drools.command.Context and other API classes)
+    curl -L -f -o /tmp/drools-api.jar \
+    https://repo1.maven.org/maven2/org/drools/drools-api/5.5.0.Final/drools-api-5.5.0.Final.jar && \
+    cp /tmp/drools-api.jar /build/webapp/WEB-INF/lib/drools-api.jar && \
     echo "✅ Drools 5.5 dependencies and transitive dependencies added to WAR"
 
 # Note: JAXB and all other dependencies are now automatically copied via Maven dependency plugin above
@@ -1163,7 +1167,7 @@ RUN echo "=== Compiling servlet ===" && \
     mkdir -p /build/webapp/WEB-INF/classes && \
     javac -version && \
     echo "=== Building classpath (includes all Maven dependencies) ===" && \
-    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/drools-core.jar:/tmp/drools-compiler.jar:/tmp/knowledge-api.jar:/tmp/mvel2.jar:/tmp/antlr-runtime.jar:/tmp/janino.jar:/tmp/commons-lang.jar:/tmp/xstream.jar:/tmp/xpp3.jar" && \
+    CLASSPATH="/tmp/servlet-api.jar:/tmp/gson.jar:/tmp/drools-core.jar:/tmp/drools-compiler.jar:/tmp/drools-api.jar:/tmp/knowledge-api.jar:/tmp/mvel2.jar:/tmp/antlr-runtime.jar:/tmp/janino.jar:/tmp/commons-lang.jar:/tmp/xstream.jar:/tmp/xpp3.jar" && \
     for jar in /build/webapp/WEB-INF/lib/*.jar; do \
         CLASSPATH="$CLASSPATH:$jar"; \
     done && \
