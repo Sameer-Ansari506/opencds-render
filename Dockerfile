@@ -243,6 +243,11 @@ RUN echo "=== Creating minimal execution engine adapter ===" && \
         '    private Map<Class<?>, List<?>> results;' \
         '    private EvaluationContext evaluationContext;' \
         '    ' \
+        '    public PassThroughExecutionEngineContext() {' \
+        '        this.input = new HashMap<>();' \
+        '        this.results = new HashMap<>();' \
+        '    }' \
+        '    ' \
         '    public PassThroughExecutionEngineContext(Map<Class<?>, List<?>> input) {' \
         '        this.input = input != null ? input : new HashMap<>();' \
         '        this.results = new HashMap<>();' \
