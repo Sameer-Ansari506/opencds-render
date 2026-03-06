@@ -108,35 +108,33 @@ RUN echo "=== Downloading Apache Commons Logging ===" && \
 RUN echo "=== Downloading Drools 5.5 dependencies with Maven (includes transitive deps) ===" && \
     mkdir -p /tmp/drools-deps && \
     cd /tmp/drools-deps && \
-    # Create a minimal pom.xml to download Drools dependencies
-    cat > pom.xml << 'EOFDROOLS' && \
-<?xml version="1.0" encoding="UTF-8"?> \
-<project xmlns="http://maven.apache.org/POM/4.0.0" \
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" \
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"> \
-    <modelVersion>4.0.0</modelVersion> \
-    <groupId>org.opencds</groupId> \
-    <artifactId>drools-deps</artifactId> \
-    <version>1.0</version> \
-    <dependencies> \
-        <dependency> \
-            <groupId>org.drools</groupId> \
-            <artifactId>drools-core</artifactId> \
-            <version>5.5.0.Final</version> \
-        </dependency> \
-        <dependency> \
-            <groupId>org.drools</groupId> \
-            <artifactId>drools-compiler</artifactId> \
-            <version>5.5.0.Final</version> \
-        </dependency> \
-        <dependency> \
-            <groupId>org.drools</groupId> \
-            <artifactId>knowledge-api</artifactId> \
-            <version>5.5.0.Final</version> \
-        </dependency> \
-    </dependencies> \
-</project> \
-EOFDROOLS
+    printf '%s\n' \
+        '<?xml version="1.0" encoding="UTF-8"?>' \
+        '<project xmlns="http://maven.apache.org/POM/4.0.0"' \
+        '         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' \
+        '         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">' \
+        '    <modelVersion>4.0.0</modelVersion>' \
+        '    <groupId>org.opencds</groupId>' \
+        '    <artifactId>drools-deps</artifactId>' \
+        '    <version>1.0</version>' \
+        '    <dependencies>' \
+        '        <dependency>' \
+        '            <groupId>org.drools</groupId>' \
+        '            <artifactId>drools-core</artifactId>' \
+        '            <version>5.5.0.Final</version>' \
+        '        </dependency>' \
+        '        <dependency>' \
+        '            <groupId>org.drools</groupId>' \
+        '            <artifactId>drools-compiler</artifactId>' \
+        '            <version>5.5.0.Final</version>' \
+        '        </dependency>' \
+        '        <dependency>' \
+        '            <groupId>org.drools</groupId>' \
+        '            <artifactId>knowledge-api</artifactId>' \
+        '            <version>5.5.0.Final</version>' \
+        '        </dependency>' \
+        '    </dependencies>' \
+        '</project>' > pom.xml && \
     # Use Maven to download all dependencies (including transitive ones)
     mvn dependency:copy-dependencies -DoutputDirectory=/tmp/drools-libs && \
     # Copy all downloaded JARs to WEB-INF/lib
