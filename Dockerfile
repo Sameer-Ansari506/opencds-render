@@ -211,6 +211,13 @@ RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
         '' \
         'import org.opencds.vmr.v1_0.internal.ClinicalStatement' \
         'import org.opencds.vmr.v1_0.internal.EntityBase' \
+        'import org.opencds.vmr.v1_0.internal.Demographics' \
+        'import org.opencds.vmr.v1_0.internal.Problem' \
+        'import org.opencds.vmr.v1_0.internal.ObservationProposal' \
+        'import org.opencds.vmr.v1_0.internal.SubstanceAdministrationProposal' \
+        'import org.opencds.vmr.v1_0.internal.ProcedureProposal' \
+        'import org.opencds.vmr.v1_0.internal.AdministrableSubstance' \
+        'import org.opencds.vmr.v1_0.internal.datatypes.CD' \
         '' \
         'global java.util.Date evalTime' \
         'global String clientLanguage' \
@@ -234,6 +241,45 @@ RUN echo "=== Creating minimal knowledge package (DRL file) ===" && \
         '        $entity : EntityBase()' \
         '    then' \
         '        $entity.setToBeReturned(true);' \
+        'end' \
+        '' \
+        '// Default recommendations when we only know basic demographics' \
+        'rule "AgeOnly_DefaultRecommendations"' \
+        '    dialect "mvel"' \
+        '    when' \
+        '        $demo : Demographics()' \
+        '    then' \
+        '        // Diagnosis: Acute Viral Syndrome' \
+        '        Problem p = new Problem();' \
+        '        CD dx = new CD();' \
+        '        dx.setDisplayName("Acute Viral Syndrome");' \
+        '        dx.setCode("B34.9");' \
+        '        dx.setCodeSystem("ICD10");' \
+        '        p.setProblemCode(dx);' \
+        '        p.setToBeReturned(true);' \
+        '        insert(p);' \
+        '' \
+        '        // Lab order: Complete Blood Count (CBC)' \
+        '        ObservationProposal lab = new ObservationProposal();' \
+        '        CD labCd = new CD();' \
+        '        labCd.setDisplayName("Complete Blood Count (CBC)");' \
+        '        labCd.setCode("2093-3");' \
+        '        labCd.setCodeSystem("LOINC");' \
+        '        lab.setObservationFocus(labCd);' \
+        '        lab.setToBeReturned(true);' \
+        '        insert(lab);' \
+        '' \
+        '        // Treatment: Supportive Care' \
+        '        SubstanceAdministrationProposal treat = new SubstanceAdministrationProposal();' \
+        '        AdministrableSubstance subs = new AdministrableSubstance();' \
+        '        CD subsCd = new CD();' \
+        '        subsCd.setDisplayName("Supportive Care");' \
+        '        subsCd.setCode("SUPPORTIVE_CARE");' \
+        '        subsCd.setCodeSystem("LOCAL");' \
+        '        subs.setSubstanceCode(subsCd);' \
+        '        treat.setSubstance(subs);' \
+        '        treat.setToBeReturned(true);' \
+        '        insert(treat);' \
         'end' > /build/webapp/WEB-INF/classes/resources/knowledgePackages/org.opencds^veda-basic^1.0.0.drl && \
     echo "✅ Knowledge package (DRL file) created"
 
@@ -258,6 +304,7 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         'import java.util.List;' \
         'import java.util.HashMap;' \
         'import java.util.ArrayList;' \
+        'import java.util.Collection;' \
         'import java.io.InputStream;' \
         'import java.io.ByteArrayInputStream;' \
         'import java.io.ByteArrayOutputStream;' \
@@ -339,19 +386,19 @@ RUN echo "=== Creating real Drools execution engine adapter ===" && \
         '        // Fire all rules' \
         '        ksession.fireAllRules();' \
         '        ' \
-        '        // Collect results - all facts that are still in working memory' \
-        '        Map<Class<?>, List<?>> results = new HashMap<>();' \
-        '        for (Map.Entry<Class<?>, List<?>> entry : input.entrySet()) {' \
-        '            List<Object> resultList = new ArrayList<>();' \
-        '            if (entry.getValue() != null) {' \
-        '                for (Object fact : entry.getValue()) {' \
-        '                    if (fact != null) {' \
-        '                        resultList.add(fact);' \
-        '                    }' \
+        '        // Collect results - all facts that are in working memory after rules fire' \
+        '        Map<Class<?>, List<?>> results = new HashMap<Class<?>, List<?>>();' \
+        '        Collection<Object> allFacts = ksession.getObjects();' \
+        '        for (Object fact : allFacts) {' \
+        '            if (fact != null) {' \
+        '                Class<?> cls = fact.getClass();' \
+        '                @SuppressWarnings("unchecked")' \
+        '                List<Object> list = (List<Object>) results.get(cls);' \
+        '                if (list == null) {' \
+        '                    list = new ArrayList<Object>();' \
+        '                    results.put(cls, list);' \
         '                }' \
-        '            }' \
-        '            if (!resultList.isEmpty()) {' \
-        '                results.put(entry.getKey(), resultList);' \
+        '                list.add(fact);' \
         '            }' \
         '        }' \
         '        ' \
@@ -840,6 +887,11 @@ public class EvaluateServlet extends HttpServlet {
                     List<EvaluatedPerson> evaluatedPersonList = new ArrayList<>();
                     evaluatedPersonList.add(evaluatedPerson);
                     allFactLists.put(EvaluatedPerson.class, evaluatedPersonList);
+                    
+                    // Also add Demographics as its own fact so Drools rules can match on it directly
+                    List<Demographics> demographicsList = new ArrayList<>();
+                    demographicsList.add(demographics);
+                    allFactLists.put(Demographics.class, demographicsList);
                     
                     // Create Problems from symptoms/complaints if present
                     if (patient.has("symptoms") || patient.has("complaints")) {
